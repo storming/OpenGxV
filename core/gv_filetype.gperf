@@ -1,0 +1,25 @@
+/* gperf -t -L C++ -Z FileTypeHash --ignore-case -N get --output-file gv_filetype.inl gv_filetype.gperf */
+struct FileTypeDesc {
+	const char *name;
+	FileType type;
+};
+%%
+"png",     FileType::PNG
+"jpg",     FileType::JPG
+"jpeg",    FileType::JPG
+"vpr",     FileType::VPR
+"vpr.gz",  FileType::VPR_GZ
+"vpr.ccz", FileType::VPR_CCZ
+"bmp",     FileType::BMP
+"tga",     FileType::TGA
+"tiff",    FileType::TIFF
+"pkm",     FileType::PKM
+"ppm",     FileType::PPM
+"webp",    FileType::WEBP
+"plist",   FileType::PLIST
+"ani",     FileType::ANI
+"g9",      FileType::G9
+"lua",	   FileType::LUA
+"toc",     FileType::TOC
+%%
+
