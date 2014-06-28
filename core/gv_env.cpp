@@ -4,10 +4,7 @@
 GV_NS_BEGIN
 
 Env::Env() : 
-defaultPixelFormat(PixelFormat::RGBA8888),
-stageWidth(1280), stageHeight(800),
-title("opengv")
-{
+    defaultPixelFormat(PixelFormat::RGBA8888) {
     //_glVersion = atof((const char*)glGetString(GL_VERSION));
     //glGetIntegerv(GL_MAX_TEXTURE_SIZE, &_maxTextureSize);
 }

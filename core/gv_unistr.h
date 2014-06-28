@@ -10,8 +10,9 @@
 
 GV_NS_BEGIN
 
-class UniStr final : public Object {
+class UniStr : public Object {
     friend class UniStrPool;
+    friend class StaticUniStr;
     GV_FRIEND_PTR();
 private:
     struct hash {
@@ -68,11 +69,11 @@ private:
 
 inline void UniStr::release() noexcept {
     if (_string && ref() == 2) {
-        Object::release();
+        //Object::release();
         UniStrPool::instance()->_map.erase(_it);
     }
     else {
-        Object::release();
+        //Object::release();
     }
 }
 
@@ -85,5 +86,26 @@ inline const GV_NS::ptr<GV_NS::UniStr> &gv_unistr(const char *str, size_t size =
 inline const GV_NS::ptr<GV_NS::UniStr> &gv_unistr(const std::string &str) noexcept {
     return GV_NS::UniStrPool::instance()->get(str);
 }
+
+#define GV_STATIC_UNISTR2(name, str)                      \
+static class __GV_STATIC_UNISTR_##name {                  \
+    struct impl : gv::Object, gv::singleton<impl> {       \
+        bool init() {                                     \
+            _str = gv::UniStrPool::instance()->get(#str); \
+            return true;                                  \
+        }                                                 \
+        gv::ptr<gv::UniStr> _str;                         \
+    };                                                    \
+public:                                                   \
+    operator gv::ptr<gv::UniStr>() const noexcept {       \
+        return impl::instance()->_str;                    \
+    }                                                     \
+} name
+
+#define GV_STATIC_UNISTR(name)                            \
+GV_STATIC_UNISTR2(name, #name)
+
+#define GV_IMPL_UNISTR(CLASS, name)                       \
+decltype(CLASS::name) CLASS::name
 
 #endif

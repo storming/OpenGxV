@@ -27,7 +27,6 @@ private:
         }
     };
     typedef std::set<ptr<Path>, less> map_type;
-    void release() noexcept;
     Path() : _parent() {}
 
     ptr<UniStr> _name;
@@ -71,16 +70,6 @@ public:
         PathPool::instance()->_stack.pop();
     }
 };
-
-inline void Path::release() noexcept {
-    if (_parent && ref() == 2) {
-        Object::release();
-        PathPool::instance()->_map.erase(_it);
-    }
-    else {
-        Object::release();
-    }
-}
 
 GV_NS_END
 

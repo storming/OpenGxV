@@ -45,15 +45,33 @@ GV_NS_END
 #define gv_info(fmt, ...)    (*gv::Log::instance())(gv::LogLevel::LOG_INFO,    fmt, ##__VA_ARGS__)
 #define gv_warning(fmt, ...) (*gv::Log::instance())(gv::LogLevel::LOG_WARNING, fmt, ##__VA_ARGS__)
 #define gv_error(fmt, ...)   (*gv::Log::instance())(gv::LogLevel::LOG_ERROR,   fmt, ##__VA_ARGS__)
+#define gv_fail(fmt, ...) do {                                            \
+    gv_error(fmt, ##__VA_ARGS__);                                         \
+    std::abort();                                                         \
+} while (0)
 
-#define gv_assert(x, fmt, ...) do {                                     \
-    if (!(x)) {                                                         \
-        gv::Log::instance()->begin(gv::LogLevel::LOG_ERROR);            \
-        gv::Log::instance()->print("assert '%s' failed, at %s@(%lu:%s).", #x, __FUNCTION__, __LINE__, __FILE__); \
-        gv::Log::instance()->print(fmt, ##__VA_ARGS__);                 \
-        gv::Log::instance()->end();                                     \
-        std::abort();                                                   \
-    }                                                                   \
+#ifdef GV_DEBUG
+#define gv_assert(x, fmt, ...) do {                                       \
+    if (!(x)) {                                                           \
+        gv::Log::instance()->begin(gv::LogLevel::LOG_ERROR);              \
+        gv::Log::instance()->print("assert '%s' failed, at %s@(%lu:%s).", \
+            #x, __FUNCTION__, __LINE__, __FILE__);                        \
+        gv::Log::instance()->print(fmt, ##__VA_ARGS__);                   \
+        gv::Log::instance()->end();                                       \
+        std::abort();                                                     \
+    }                                                                     \
+} while (0)
+#endif
+
+#define gv_valid(x, fmt, ...) do {                                        \
+    if (!(x)) {                                                           \
+        gv::Log::instance()->begin(gv::LogLevel::LOG_ERROR);              \
+        gv::Log::instance()->print("valid '%s' failed, at %s@(%lu:%s).",  \
+            #x, __FUNCTION__, __LINE__, __FILE__);                        \
+        gv::Log::instance()->print(fmt, ##__VA_ARGS__);                   \
+        gv::Log::instance()->end();                                       \
+        std::abort();                                                     \
+    }                                                                     \
 } while (0)
 
 #endif

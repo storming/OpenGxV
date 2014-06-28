@@ -5,10 +5,11 @@
 #include "gv_singleton.h"
 #include "gv_pixel.h"
 #include "gv_math.h"
+#include "gv_stage.h"
 
 GV_NS_BEGIN
 
-class Env : public Object, public singleton<Env> {
+class Env : public Object, public singleton<Env, Stage> {
     GV_FRIEND_SINGLETON();
 public:
     int maxTextureSize() const noexcept {
@@ -18,9 +19,6 @@ public:
         return _glVersion;
     }
     PixelFormat defaultPixelFormat;
-    unsigned stageWidth;
-    unsigned stageHeight;
-    std::string title;
 private:
     Env();
     float _glVersion;

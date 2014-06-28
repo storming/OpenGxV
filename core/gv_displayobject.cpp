@@ -8,7 +8,7 @@ DisplayObject::DisplayObject() :
     _parent(),
     _flags()
 { 
-    //_transform.makeAffine();
+    _transform.makeAffine();
 }
 
 void DisplayObject::size(const Size2f &value) {

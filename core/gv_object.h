@@ -5,7 +5,6 @@
 
 #include "gv_platform.h"
 #include "gv_list.h"
-#include "Eigen/Eigen"
 
 GV_NS_BEGIN
 
@@ -16,17 +15,14 @@ class Object {
     template <typename, typename...> friend class singleton;
     GV_RESTRAIN_NEW();
 protected:
-    Object() : _ref(1) {}
-    virtual ~Object() {}
-    size_t ref() const {
-        return _ref;
+    Object() noexcept : _ref(1) {
+        if (--_constructRef < 0) {
+            constructFailed();
+        }
     }
-    void retain() const noexcept {
-        ++_ref;
-    }
-    void release() const noexcept {
-        if (!--_ref) {
-            delete this;
+    virtual ~Object() noexcept {
+        if (--_destroyRef < 0){
+            destroyFailed();
         }
     }
     virtual bool init() { return true;  }
@@ -36,10 +32,26 @@ private:
         ~singletons();
     };
     mutable size_t _ref;
+
     static singletons _singletons;
+    static void constructFailed();
+    static void destroyFailed();
+
+    static int _constructRef;
+    static int _destroyRef;
+public:
+    size_t ref() const {
+        return _ref;
+    }
+
+    ptr<Object> self() noexcept;
 };
 
-
+template <typename _T>
+struct is_object {
+    typedef typename std::remove_cv<_T> type;
+    static constexpr bool value = std::is_same<Object, type>::value || std::is_base_of<Object, type>::value;
+};
 template <typename _T>
 class ptr {
     friend class Object;
@@ -66,53 +78,93 @@ private:
     static void *operator new[](std::size_t size, void *ptr) {
         return nullptr;
     }
-protected:
-    type *_ptr;
-    ptr(type *x) noexcept : _ptr(x) {
-        if (_ptr) {
-            _ptr->retain();
+
+    template<typename _Tx = type>
+    static typename std::enable_if<
+            is_object<_Tx>::value, 
+            void
+        >::type 
+    retain_ptr(_Tx *x) noexcept {
+        if (x) {
+            ++x->_ref;
         }
+    }
+    template<typename _Tx = type>
+    static typename std::enable_if<
+            !is_object<_Tx>::value, 
+            void
+        >::type 
+    retain_ptr(_Tx *x) noexcept {
+    }
+    template<typename _Tx = type>
+    static typename std::enable_if<
+            is_object<_Tx>::value, 
+            void
+        >::type 
+    release_ptr(_Tx *x) noexcept {
+        if (x) {
+            if (--x->_ref) {
+                ++Object::_destroyRef;
+                delete x;
+            }
+        }
+    }
+    template<typename _Tx = type>
+    static typename std::enable_if<
+            !is_object<_Tx>::value, 
+            void
+        >::type 
+    release_ptr(_Tx *x) noexcept {
+        if (x) {
+            delete x;
+        }
+    }
+
+    void retain() noexcept {
+        retain_ptr<>(_ptr);
+    }
+    void retain() const noexcept {
+        retain_ptr<>(_ptr);
+    }
+    void release() noexcept {
+        release_ptr<>(_ptr);
+    }
+    void release() const noexcept {
+        release_ptr<>(_ptr);
+    }
+
+    ptr(type *x) noexcept : _ptr(x) {
+        retain_ptr<>(x);
     }
     ptr(const type *x) noexcept : _ptr(x) {
-        if (_ptr) {
-            _ptr->retain();
-        }
+        retain_ptr<>(x);
     }
+    type *_ptr;
 public:
     ptr() noexcept : _ptr() {}
     ptr(std::nullptr_t) noexcept : _ptr() {}
+
     template <typename _Tx>
     ptr(const ptr<_Tx> &x) noexcept {
-        if ((_ptr = x._ptr)) {
-            _ptr->retain();
-        }
+        retain_ptr<>(_ptr = x._ptr);
     }
     ptr(const ptr &x) noexcept {
-        if ((_ptr = x._ptr)) {
-            _ptr->retain();
-        }
+        retain_ptr<>(_ptr = x._ptr);
     }
     ptr(ptr &&x) noexcept : _ptr() {
         std::swap(_ptr, x._ptr);
     }
     ~ptr() noexcept {
         static_assert(std::is_base_of<Object, _T>::value, "ptr object must derived from Object.");
-        if (_ptr) {
-            _ptr->release();
-        }
+        release_ptr<>(_ptr);
     }
     template <typename _Tx>
     void assign(const ptr<_Tx> &x) noexcept {
-        if ((void*)_ptr == (void*)x._ptr) {
+        if (reinterpret_cast<void*>(_ptr) == reinterpret_cast<void*>(x._ptr)) {
             return;
         }
-        if (_ptr) {
-            _ptr->release();
-            _ptr = nullptr;
-        }
-        if ((_ptr = x._ptr)) {
-            _ptr->retain();
-        }
+        release_ptr<>(_ptr);
+        retain_ptr<>(_ptr = x._ptr);
     }
     template <typename _Tx>
     ptr &operator=(const ptr<_Tx> &x) noexcept {
@@ -124,10 +176,8 @@ public:
         return *this;
     }
     ptr &operator=(std::nullptr_t) noexcept {
-        if (_ptr) {
-            _ptr->release();
-            _ptr = nullptr;
-        }
+        release_ptr<>(_ptr);
+        _ptr = nullptr;
         return *this;
     }
     ptr &operator=(ptr &&x) noexcept {
@@ -148,36 +198,85 @@ public:
     }
 };
 
+inline ptr<Object> Object::self() noexcept {
+    return ptr<Object>(this);
+}
+
 template <typename _T1, typename _T2>
 inline bool operator==(const ptr<_T1> &lhs, const ptr<_T2> &rhs) {
-    return (void*)lhs._ptr == (void*)rhs._ptr;
+    return reinterpret_cast<void*>(lhs._ptr) == reinterpret_cast<void*>(rhs._ptr);
 }
 
 template <typename _T>
 inline bool operator==(const ptr<_T> &lhs, const void *rhs) {
-    return (void*)lhs._ptr == (void*)rhs;
+    return reinterpret_cast<void*>(lhs._ptr) == reinterpret_cast<void*>(rhs);
 }
 
 template <typename _T>
 inline bool operator==(const void *lhs, const ptr<_T> &rhs) {
-    return (void*)lhs == (void*)rhs._ptr;
+    return reinterpret_cast<void*>(lhs) == reinterpret_cast<void*>(rhs._ptr);
 }
 
 template <typename _T1, typename _T2>
 inline ptr<_T1> ptr_cast(const ptr<_T2> &x) {
-    ptr<_T1> ret;
-    if (x._ptr) {
-        ret._ptr = static_cast<_T1*>(x._ptr);
-        x._ptr->retain();
-    }
-    return ret;
+    return x._ptr ? ptr<_T1>(static_cast<_T1*>(x._ptr)) : nullptr;
 }
 
+/**
+ * 
+ * 
+ */
 template <typename _T>
 class object final : public ptr<_T> {
 public:
     typedef ptr<_T> base;
     typedef _T type;
+
+    template <typename ..._Args>
+    object(_Args&&...args) noexcept {
+        ++Object::_constructRef;
+        base::_ptr = new type(std::forward<_Args>(args)...);
+    }
+};
+
+/**
+ * 
+ */
+template <typename _T>
+class owned_ptr final {
+public:
+    typedef _T type;
+    owned_ptr() noexcept : _ptr() {}
+    owned_ptr(type *ptr) noexcept : _ptr(ptr) {}
+    owned_ptr(const ptr &x) = delete;
+    owned_ptr(owned_ptr &&x) noexcept : _ptr() {
+        std::swap(_ptr, x._ptr);
+    }
+    ~owned_ptr() noexcept {
+        release_ptr(_ptr);
+    }
+    owned_ptr &operator=(const owned_ptr &x) = delete;
+    owned_ptr &operator=(type *ptr) noexcept {
+        release_ptr(_ptr);
+        _ptr = ptr;
+        return *this;
+    }
+    owned_ptr &operator=(owned_ptr &&x) noexcept {
+        std::swap(_ptr, x._ptr);
+        return *this;
+    }
+    type *operator->() const noexcept {
+        return _ptr;
+    }
+    operator type*() const noexcept {
+        return _ptr;
+    }
+    type &operator *() const noexcept {
+        return *_ptr;
+    }
+    type *get() const noexcept {
+        return _ptr;
+    }
 private:
     static void *operator new(std::size_t size) {
         return nullptr;
@@ -191,11 +290,12 @@ private:
     static void *operator new[](std::size_t size, void *ptr) {
         return nullptr;
     }
-public:
-    template <typename ..._Args>
-    object(_Args&&...args) noexcept {
-        base::_ptr = new type(std::forward<_Args>(args)...);
+    static void release_ptr(type *ptr) noexcept {
+        if (ptr) {
+            delete ptr;
+        }
     }
+    type *_ptr;
 };
 
 template <typename _T, int __type = _T::entry_type::type>
@@ -234,12 +334,12 @@ public:
     }
 
     static value_type *insert_back(type *listelm, const ptr_type &elm) noexcept {
-        elm->retain();
+        elm.retain();
         return base::insert_back(listelm, elm);
     }
 
     static value_type *insert_front(type *listelm, const ptr_type &elm) noexcept {
-        elm->retain();
+        elm.retain();
         return base::insert_front(listelm, elm);
     }
 
@@ -250,7 +350,7 @@ public:
     }
 
     value_type *push_front(const ptr_type &elm) noexcept {
-        elm->retain();
+        elm.retain();
         return base::push_front(elm);
     }
 
@@ -301,12 +401,12 @@ public:
     }
 
     static value_type *insert_back(type *listelm, const ptr_type &elm) noexcept {
-        elm->retain();
+        elm.retain();
         return base::insert_back(listelm, elm);
     }
 
     static value_type *insert_front(type *listelm, const ptr_type &elm) noexcept {
-        elm->retain();
+        elm.retain();
         return base::insert_front(listelm, elm);
     }
 
@@ -317,7 +417,7 @@ public:
     }
 
     value_type *push_front(const ptr_type &elm) noexcept {
-        elm->retain();
+        elm.retain();
         return base::push_front(elm);
     }
 
@@ -328,7 +428,7 @@ public:
     }
 
     value_type *push_back(const ptr_type &elm) noexcept {
-        elm->retain();
+        elm.retain();
         return base::push_back(elm);
     }
 
@@ -372,7 +472,7 @@ public:
     }
 
     value_type *insert_back(type *listelm, const ptr_type &elm) noexcept {
-        elm->retain();
+        elm.retain();
         return base::insert_back(listelm, elm);
     }
 
@@ -389,7 +489,7 @@ public:
     }
 
     value_type *push_front(const ptr_type &elm) noexcept {
-        elm->retain();
+        elm.retain();
         return base::push_front(elm);
     }
 
@@ -433,7 +533,7 @@ public:
     }
 
     static value_type *insert_back(type *listelm, const ptr_type &elm) noexcept {
-        elm->retain();
+        elm.retain();
         return base::insert_back(listelm, elm);
     }
 
@@ -450,7 +550,7 @@ public:
     }
 
     value_type *push_front(const ptr_type &elm) noexcept {
-        elm->retain();
+        elm.retain();
         return base::push_front(elm);
     }
 
@@ -461,7 +561,7 @@ public:
     }
 
     value_type *push_back(const ptr_type &elm) noexcept {
-        elm->retain();
+        elm.retain();
         return base::push_back(elm);
     }
 

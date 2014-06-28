@@ -2,6 +2,10 @@
 #include "gv_stage.h"
 #include "gv_log.h"
 
+#define GV_STAGE_DEFAULT_WIDTH  1280
+#define GV_STAGE_DEFAULT_HEIGHT 800
+#define GV_STAGE_DEFAULT_TITLE  "OpenGV"
+
 GV_NS_BEGIN
 
 Stage::Stage() noexcept {
@@ -30,45 +34,47 @@ void Stage::glfwWindowClose(GLFWwindow *windows) {
 bool Stage::init() {
     glfwSetErrorCallback(glfwError);
     glfwInit();
-    /*
+
+    glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+    glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
+
+    _monitor = glfwGetPrimaryMonitor();
+    if (!_monitor) {
+        return false;
+    }
+    _window = glfwCreateWindow(GV_STAGE_DEFAULT_WIDTH, GV_STAGE_DEFAULT_HEIGHT, GV_STAGE_DEFAULT_TITLE, nullptr, nullptr); 
+    if (!_window) {
+        return false;
+    }
+    glfwMakeContextCurrent(_window);
+
     GLenum n = glewInit();
     if (n != GLEW_OK) {
         gv_error("glew init failed, %s.", (char *)glewGetErrorString(n));
         return false;
-    }*/
-
-    glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-
-    Env *env = Env::instance();
-    int width = env->stageWidth, height = env->stageHeight;
-
-    _monitor = glfwGetPrimaryMonitor();
-    
-
-    _window = glfwCreateWindow(env->stageWidth, env->stageHeight, Env::instance()->title.c_str(), nullptr, nullptr);
-    if (!_window) {
-        return nullptr;
     }
-    glfwMakeContextCurrent(_window);
 
     glfwSetWindowPosCallback(_window, glfwWindowPos);
     glfwSetFramebufferSizeCallback(_window, glfwFramebufferSize);
     glfwSetWindowSizeCallback(_window, glfwWindowSize);
     glfwSetWindowCloseCallback(_window, glfwWindowClose);
 
+    return true;
+}
+
+void Stage::run() noexcept {
+    glfwShowWindow(_window);
+
+    int width, height;
     glfwGetFramebufferSize(_window, &width, &height);
     glViewport(0, 0, width, height);
-
     glfwGetFramebufferSize(_window, &width, &height);
     float ratio = width / (float)height;
     glViewport(0, 0, width, height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glOrtho(-ratio, ratio, -1.f, 1.f, 1.f, -1.f);
-    return true;
-}
 
-void Stage::run() noexcept {
     _exit = false;
     while (!_exit) {
         float ratio;

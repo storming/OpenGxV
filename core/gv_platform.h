@@ -47,7 +47,15 @@ static void *operator new[](std::size_t size) {            \
     return ::operator new[](size);                         \
 }
 
-
+#ifndef GV_DEBUG
+#if !defined(NDEBUG)
+#define GV_DEBUG 1
+#endif
+#else
+#if !GV_DEBUG
+#undef GV_DEBUG
+#endif
+#endif
 
 
 GV_NS_BEGIN
