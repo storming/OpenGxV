@@ -38,6 +38,10 @@ extern "C" {
 #define GV_NS_MATH_BEGIN namespace GV_MATH_NS {
 #define GV_NS_MATH_END }
 
+#define GV_INTERNAL_NS internal
+#define GV_INTERNAL_BEGIN namespace GV_INTERNAL_NS {
+#define GV_INTERNAL_END }
+
 #define GV_RESTRAIN_NEW()                                  \
 private:                                                   \
 static void *operator new(std::size_t size) {              \

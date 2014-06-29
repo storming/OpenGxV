@@ -6,8 +6,7 @@
 
 GV_NS_BEGIN
 
-inline size_t hash(const void *key, unsigned int len, size_t initval = 0x01000193U)
-{
+inline size_t hash(const void *key, unsigned int len, size_t initval = 0x01000193U) {
     static const std::uint64_t m = 0xc6a4a7935bd1e995ULL;
     static const std::uint64_t r = 47;
     register std::uint64_t h = ((std::uint64_t)initval) ^ (len * m);
