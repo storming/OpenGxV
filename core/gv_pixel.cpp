@@ -4,15 +4,16 @@
 
 GV_NS_BEGIN
 
-PixelInfo::PixelInfo(PixelFormat format, const char *desc, bool compressed, bool alpha, size_t pixelSize, GLint glInternalFormat, GLenum glFormat, GLenum glType) :
-_format(format),
-_desc(desc),
-_compressed(compressed),
-_alpha(alpha),
-_pixelSize(pixelSize),
-_glInternalFormat(glInternalFormat),
-_glFormat(glFormat),
-_glType(glType) { }
+PixelInfo::PixelInfo(PixelFormat format, const char *desc, bool compressed, bool alpha, size_t pixelSize, GLint glInternalFormat, GLenum glFormat, GLenum glType) 
+: _format(format),
+  _desc(desc),
+  _compressed(compressed),
+  _alpha(alpha),
+  _pixelSize(pixelSize),
+  _glInternalFormat(glInternalFormat),
+  _glFormat(glFormat),
+  _glType(glType) 
+{ }
 
 ptr<Chunk> PixelInfo::convert(const Chunk &src, PixelFormat to) const noexcept {
     return nullptr;
