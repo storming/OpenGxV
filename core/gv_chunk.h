@@ -11,6 +11,10 @@ public:
     Chunk(size_t size) noexcept : _size(size) {
         _data = (unsigned char*)std::malloc(size);
     }
+    Chunk(const void *p, size_t size) noexcept : _size(size) {
+        _data = (unsigned char*)std::malloc(size);
+        std::memcpy(_data, p, _size);
+    }
     Chunk(const Chunk &) = delete;
     Chunk(Chunk &&x) noexcept : _data(), _size() {
         swap(x);
@@ -44,6 +48,12 @@ public:
             _size = 0;
         }
         return *this;
+    }
+    const unsigned char &operator[](size_t size) const noexcept {
+        return _data[size];
+    }
+    unsigned char &operator[](size_t size) noexcept {
+        return _data[size];
     }
 private:
     unsigned char *_data;

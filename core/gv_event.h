@@ -24,15 +24,15 @@ public:
         return object<Event>(_type, _bubbles, _cancelable);
     }
 
-    Object *target() const noexcept {
+    ptr<Object> target() const noexcept {
         return _target;
     }
 
-    Object *currentTarget() const noexcept {
+    ptr<Object> currentTarget() const noexcept {
         return _currentTarget;
     }
 
-    UniStr *type() const noexcept {
+    ptr<UniStr> type() const noexcept {
         return _type;
     }
 

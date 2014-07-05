@@ -9,7 +9,7 @@ class DisplayObjectContainer : public DisplayObject {
     GV_FRIEND_PTR();
     friend DisplayObject;
 private:
-    typedef gv_ptr_list(DisplayObject, _entry) container_base;
+    typedef gv_list(ptr<DisplayObject>, _entry) container_base;
 
 public:
     class ContainerType : protected container_base {

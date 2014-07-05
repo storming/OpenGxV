@@ -7,20 +7,16 @@
 
 GV_NS_BEGIN
 
-inline const ptr<Path> &PathPool::probe(ptr<Path> &parent, const char *name, unsigned len) noexcept {
-    static object<Path> tmp;
-    tmp->_name = gv_unistr(name, len);
-    auto em = _map.emplace(tmp);
-    if (!em.second) {
-        tmp->_name = nullptr;
-        return *em.first;
-    }
-    object<Path> path;
-    path->_name = std::move(tmp->_name);
-    path->_parent = parent;
-    path->_it = em.first;
-    (ptr<Path>&)*em.first = std::move(path);
-    return *em.first;
+inline ptr<Path> PathPool::probe(ptr<Path> &parent, const char *name, unsigned len) noexcept {
+    ptr<UniStr> str = gv_unistr(name, len);
+    ptr<Path> path;
+    auto em = _map.emplace(str, [&]() {
+        path = object<Path>();
+        path->_name = str;
+        path->_parent = parent;
+        return path;
+    });
+    return std::addressof<Path>(*em.first);
 }
 
 inline const ptr<Path> &PathPool::current() noexcept {
@@ -30,7 +26,7 @@ inline const ptr<Path> &PathPool::current() noexcept {
     return _stack.top();
 }
 
-const ptr<Path> &PathPool::get(const char *str, size_t len) noexcept {
+ptr<Path> PathPool::get(const char *str, size_t len) noexcept {
     int c;
     if (!len) {
         len = strlen(str);
@@ -104,7 +100,7 @@ std::string Path::name() const {
     std::string ret;
     if (this != PathPool::instance()->_root) {
         const char *p, *name;
-        name = p = *_name;
+        name = p = _name->c_str();
         const char *end = p + _name->size();
         while (p < end && *p != '.') {
             p++;
@@ -117,7 +113,7 @@ std::string Path::name() const {
 std::string Path::ext() const {
     std::string ret;
     if (this != PathPool::instance()->_root) {
-        const char *p = *_name;
+        const char *p = _name->c_str();
         const char *end = p + _name->size();
         while (p < end && *p++ != '.');
         if (p < end) {
@@ -147,7 +143,7 @@ std::string Path::tostring() const {
         else {
             ret.append("/", 1);
         }
-        ret.append(*entry->_name, entry->_name->size());
+        ret.append(entry->_name->c_str(), entry->_name->size());
     }
     return ret;
 }

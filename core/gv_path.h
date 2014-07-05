@@ -6,7 +6,7 @@
 
 #include "gv_object.h"
 #include "gv_unistr.h"
-#include "gv_hash.h"
+#include "gv_rbmap.h"
 
 GV_NS_BEGIN
 
@@ -21,17 +21,10 @@ public:
         return tostring();
     }
 private:
-    struct less {
-        bool operator()(const Path *lhs, const Path *rhs) noexcept {
-            return lhs->_name < rhs->_name;
-        }
-    };
-    typedef std::set<ptr<Path>, less> map_type;
     Path() : _parent() {}
-
+    map_entry _entry;
     ptr<UniStr> _name;
     ptr<Path> _parent;
-    map_type::iterator _it;
 };
 
 class PathPool : public Object, public singleton<PathPool, UniStrPool> {
@@ -39,16 +32,22 @@ class PathPool : public Object, public singleton<PathPool, UniStrPool> {
     friend class Chdir;
     GV_FRIEND_SINGLETON();
 public:
-    const ptr<Path> &get(const char *str, size_t len = 0) noexcept;
-    const ptr<Path> &get(const std::string &str) noexcept {
+    ptr<Path> get(const char *str, size_t len = 0) noexcept;
+    ptr<Path> get(const std::string &str) noexcept {
         return get(str.c_str(), str.size());
     }
 private:
     PathPool() {}
-    const ptr<Path> &probe(ptr<Path> &parent, const char *name, unsigned len) noexcept;
+    ptr<Path> probe(ptr<Path> &parent, const char *name, unsigned len) noexcept;
     const ptr<Path> &current() noexcept;
 
-    Path::map_type _map;
+    struct compare {
+        int operator()(const ptr<UniStr> &lhs, const Path &rhs) const noexcept {
+            return lhs - rhs._name;
+        }
+    };
+    typedef gv_map(ptr<UniStr>, Path, _entry, compare) map_type;
+    map_type _map;
     object<Path> _root;
     std::stack<ptr<Path>> _stack;
 };
@@ -73,11 +72,11 @@ public:
 
 GV_NS_END
 
-inline const GV_NS::ptr<GV_NS::Path> &gv_path(const char *str, size_t size = 0) noexcept {
+inline GV_NS::ptr<GV_NS::Path> gv_path(const char *str, size_t size = 0) noexcept {
     return GV_NS::PathPool::instance()->get(str, size);
 }
 
-inline const GV_NS::ptr<GV_NS::Path> &gv_path(const std::string &str) noexcept {
+inline GV_NS::ptr<GV_NS::Path> gv_path(const std::string &str) noexcept {
     return GV_NS::PathPool::instance()->get(str);
 }
 

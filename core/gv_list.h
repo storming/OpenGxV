@@ -5,43 +5,45 @@
 
 GV_NS_BEGIN
 
-#define __LIST_OBJECT__(x)   static_cast<type*>(x)
-#define __LIST_ENTRY__(x)    static_cast<entry_type&>(__LIST_OBJECT__(x)->*(__field))
-#define __LIST_VALUE__(x)    static_cast<value_type*>(x)
+#define __GV_LIST_OBJECT__(x)   static_cast<type*>(x)
+#define __GV_LIST_ENTRY__(x)    static_cast<entry_type&>(__GV_LIST_OBJECT__(x)->*(__field))
+#define __GV_LIST_VALUE__(x)    static_cast<type*>(x)
 
-struct list_type {
-    enum {
-        list,
-        clist,
-        slist,
-        stlist,
-        unknown,
-    };
+enum class ListType : unsigned {
+    list,
+    clist,
+    slist,
+    stlist,
+    unknown,
 };
 
-template <typename _T, typename _Entry, _Entry _T::*__field, typename _U = _T, int __type = _Entry::type>
+template <
+    typename _T,
+    typename _U,
+    typename _Entry, 
+    _Entry _U::*__field,
+    ListType __type = _Entry::type>
 struct list {
-    static_assert(__type >= 0 && __type < list_type::unknown, "unknown list type.");
+    static_assert(__type < ListType::unknown, "unknown list type.");
 };
 
 /* list */
 struct list_entry {
-    static constexpr int type = list_type::list;
+    static constexpr ListType type = ListType::list;
     void *_next;
     void **_prev;
 };
 
-template <typename _T, typename _Entry, _Entry _T::*__field, typename _U>
-struct list <_T, _Entry, __field, _U, list_type::list> {
+template <typename _T, typename _U, typename _Entry, _Entry _U::*__field>
+struct list <_T, _U, _Entry, __field, ListType::list> {
 public:
-    typedef _T type;
-    typedef _U value_type;
-    typedef _Entry entry_type;
+    static_assert(std::is_same<_U, _T>::value || std::is_base_of<_U, _T>::value,
+                  "list _T must same with _U or derived from _U");
+    typedef _T          type;
+    typedef type&       reference;
+    typedef type*       pointer;
+    typedef _Entry      entry_type;
 
-private:
-    type *_first;
-
-public:
     class iterator {
     private:
         type *_ptr;
@@ -54,26 +56,22 @@ public:
             return *this;
         }
 
-        value_type& operator*() noexcept {
-            return *__LIST_VALUE__(_ptr);
+        reference operator*() noexcept {
+            return *__GV_LIST_VALUE__(_ptr);
         }
 
-        value_type* operator->() noexcept {
-            return __LIST_VALUE__(_ptr);
-        }
-
-        value_type* pointer() noexcept {
-            return __LIST_VALUE__(_ptr);
+        pointer operator->() noexcept {
+            return __GV_LIST_VALUE__(_ptr);
         }
 
         iterator& operator++() noexcept {
-            _ptr = __LIST_OBJECT__(__LIST_ENTRY__(_ptr)._next);
+            _ptr = __GV_LIST_OBJECT__(__GV_LIST_ENTRY__(_ptr)._next);
             return *this;
         }
 
         iterator operator++(int)noexcept {
             iterator tmp(_ptr);
-            _ptr = __LIST_OBJECT__(__LIST_ENTRY__(_ptr)._next);
+            _ptr = __GV_LIST_OBJECT__(__GV_LIST_ENTRY__(_ptr)._next);
             return tmp;
         }
 
@@ -85,6 +83,7 @@ public:
             return _ptr != x._ptr;
         }
     };
+    typedef const iterator const_iterator;
 public:
     list() noexcept : _first(nullptr) {}
     list(const list &x) = delete;
@@ -99,10 +98,10 @@ public:
     void swap(list &x) {
         std::swap(_first, x._first);
         if (_first) {
-            _first->_prev = &_first;
+            __GV_LIST_ENTRY__(_first)._prev = reinterpret_cast<void**>(&_first);
         }
         if (x._first) {
-            x._first->_prev = &x._first;
+            __GV_LIST_ENTRY__(x._first)._prev = reinterpret_cast<void**>(&x._first);
         }
     }
 
@@ -113,68 +112,68 @@ public:
         return *this;
     }
 
-    static value_type *insert_back(type *listelm, type *elm) noexcept {
-        register entry_type &listed = __LIST_ENTRY__(listelm);
-        register entry_type &entry = __LIST_ENTRY__(elm);
+    static pointer insert_back(type *listelm, type *elm) noexcept {
+        register entry_type &listed = __GV_LIST_ENTRY__(listelm);
+        register entry_type &entry = __GV_LIST_ENTRY__(elm);
 
         if ((entry._next = listed._next) != nullptr) {
-            __LIST_ENTRY__(listed._next)._prev = &entry._next;
+            __GV_LIST_ENTRY__(listed._next)._prev = &entry._next;
         }
         listed._next = elm;
         entry._prev = &listed._next;
-        return __LIST_VALUE__(elm);
+        return __GV_LIST_VALUE__(elm);
     }
 
-    static value_type *insert_front(type *listelm, type *elm) noexcept {
-        register entry_type &listed = __LIST_ENTRY__(listelm);
-        register entry_type &entry = __LIST_ENTRY__(elm);
+    static pointer insert_front(type *listelm, type *elm) noexcept {
+        register entry_type &listed = __GV_LIST_ENTRY__(listelm);
+        register entry_type &entry = __GV_LIST_ENTRY__(elm);
 
         entry._prev = listed._prev;
         entry._next = listelm;
         *listed._prev = elm;
         listed._prev = &entry._next;
 
-        return __LIST_VALUE__(elm);
+        return __GV_LIST_VALUE__(elm);
     }
 
-    static value_type *remove(type *elm) noexcept {
-        register entry_type &entry = __LIST_ENTRY__(elm);
+    static pointer remove(type *elm) noexcept {
+        register entry_type &entry = __GV_LIST_ENTRY__(elm);
 
         if (entry._next != nullptr) {
-            __LIST_ENTRY__(entry._next)._prev = entry._prev;
+            __GV_LIST_ENTRY__(entry._next)._prev = entry._prev;
         }
         *entry._prev = entry._next;
-        return __LIST_VALUE__(elm);
+        return __GV_LIST_VALUE__(elm);
     }
 
-    static value_type *next(type *elm) noexcept {
-        void *p = __LIST_ENTRY__(elm)._next;
-        return p ? __LIST_VALUE__(__LIST_OBJECT__(p)) : nullptr;
+    static pointer next(type *elm) noexcept {
+        void *p = __GV_LIST_ENTRY__(elm)._next;
+        return p ? __GV_LIST_VALUE__(__GV_LIST_OBJECT__(p)) : nullptr;
     }
 
-    value_type *first() noexcept {
-        return _first ? __LIST_VALUE__(_first) : nullptr;
+    pointer first() const noexcept {
+        return _first ? __GV_LIST_VALUE__(_first) : nullptr;
     }
 
-    value_type *front() noexcept {
-        return _first ? __LIST_VALUE__(_first) : nullptr;
+    pointer front() const noexcept {
+        return _first ? __GV_LIST_VALUE__(_first) : nullptr;
     }
 
-    bool empty() noexcept {
+    bool empty() const noexcept {
         return !_first;
     }
 
-    value_type *push_front(type *elm) noexcept {
-        register entry_type &entry = __LIST_ENTRY__(elm);
+    pointer push_front(type *elm) noexcept {
+        register entry_type &entry = __GV_LIST_ENTRY__(elm);
         if ((entry._next = _first) != nullptr) {
-            __LIST_ENTRY__(_first)._prev = &entry._next;
+            __GV_LIST_ENTRY__(_first)._prev = &entry._next;
         }
         _first = elm;
         entry._prev = reinterpret_cast<void**>(&_first);
-        return __LIST_VALUE__(elm);
+        return __GV_LIST_VALUE__(elm);
     }
 
-    value_type *pop_front() noexcept {
+    pointer pop_front() noexcept {
         if (!_first) {
             return nullptr;
         }
@@ -185,7 +184,11 @@ public:
         return iterator(_first);
     }
 
-    const iterator begin() const noexcept {
+    const_iterator begin() const noexcept {
+        return iterator(_first);
+    }
+
+    const_iterator cbegin() const noexcept {
         return iterator(_first);
     }
 
@@ -193,19 +196,20 @@ public:
         return iterator(nullptr);
     }
 
-    const iterator end() const noexcept {
+    const_iterator end() const noexcept {
         return iterator(nullptr);
     }
+
+    const_iterator cend() const noexcept {
+        return iterator(nullptr);
+    }
+private:
+    type *_first;
 };
 
 /* clist */
 struct clist_entry {
-    static constexpr int type = list_type::clist;
-
-    clist_entry() noexcept {}
-    clist_entry(clist_entry *next, clist_entry *prev) noexcept : _next(next), _prev(prev) {}
-    clist_entry(clist_entry *next) noexcept : _next(next) {}
-    clist_entry(const clist_entry &x) noexcept : _next(x._next), _prev(x._prev) {}
+    static constexpr ListType type = ListType::clist;
 
     clist_entry *_next;
     clist_entry *_prev;
@@ -230,13 +234,17 @@ struct clist_entry {
     }
 };
 
-#define __CLIST_OBJECT__(entry) containerof_member(entry, __field)
-template <typename _T, typename _Entry, _Entry _T::*__field, typename _U>
-struct list <_T, _Entry, __field, _U, list_type::clist>: protected clist_entry {
+#define __CLIST_OBJECT__(entry) static_cast<pointer>(containerof_member(entry, __field))
+template <typename _T, typename _U, typename _Entry, _Entry _U::*__field>
+struct list <_T, _U, _Entry, __field, ListType::clist>: protected clist_entry {
 public:
-    typedef _T type;
-    typedef _U value_type;
-    typedef _Entry entry_type;
+    static_assert(std::is_same<_U, _T>::value || std::is_base_of<_U, _T>::value,
+                  "list _T must same with _U or derived from _U");
+
+    typedef _T          type;
+    typedef type&       reference;
+    typedef type*       pointer;
+    typedef _Entry      entry_type;
 
     class iterator {
     private:
@@ -250,16 +258,12 @@ public:
             return *this;
         }
 
-        value_type& operator*() noexcept {
-            return *__LIST_VALUE__(__CLIST_OBJECT__(_entry));
+        reference operator*() noexcept {
+            return *__GV_LIST_VALUE__(__CLIST_OBJECT__(_entry));
         }
 
-        value_type* operator->() noexcept {
-            return __LIST_VALUE__(__CLIST_OBJECT__(_entry));
-        }
-
-        value_type* pointer() noexcept {
-            return __LIST_VALUE__(__CLIST_OBJECT__(_entry));
+        pointer operator->() noexcept {
+            return __GV_LIST_VALUE__(__CLIST_OBJECT__(_entry));
         }
 
         iterator& operator++() noexcept {
@@ -306,16 +310,12 @@ public:
             return *this;
         }
 
-        value_type& operator*() noexcept {
-            return *__LIST_VALUE__(__CLIST_OBJECT__(_entry));
+        reference operator*() noexcept {
+            return *__GV_LIST_VALUE__(__CLIST_OBJECT__(_entry));
         }
 
-        value_type* operator->() noexcept {
-            return __LIST_VALUE__(__CLIST_OBJECT__(_entry));
-        }
-
-        value_type* pointer() noexcept {
-            return __LIST_VALUE__(__CLIST_OBJECT__(_entry));
+        pointer operator->() noexcept {
+            return __GV_LIST_VALUE__(__CLIST_OBJECT__(_entry));
         }
 
         reverse_iterator& operator++() noexcept {
@@ -349,11 +349,25 @@ public:
         }
     };
 
+    typedef const iterator const_iterator;
+    typedef const reverse_iterator const_reverse_iterator;
+
 public:
-    list() noexcept : clist_entry(this, this) {}
+    list() noexcept {
+        init();
+    }
     list(const list &x) = delete;
-    list(list &&x) noexcept : clist_entry(this, this) {
-        swap(x);
+    list(list &&x) noexcept {
+        if (x.empty()){
+            init();
+        }
+        else {
+            _next = x._next; 
+            _prev = x._prev;
+            _next->_prev = this;
+            _prev->_next = this;
+            x.init();
+        }
     }
 
     list &operator=(const list &x) = delete;
@@ -377,89 +391,89 @@ public:
         x._prev->_next = std::addressof<list>(x);
     }
 
-    static value_type *insert_back(type *listelm, type *elm) noexcept {
+    static pointer insert_back(type *listelm, type *elm) noexcept {
         register entry_type *listed = &(listelm->*__field);
         register entry_type *entry = &(elm->*__field);
         entry->insert_back(listed);
-        return __LIST_VALUE__(elm);
+        return __GV_LIST_VALUE__(elm);
     }
 
-    static value_type *insert_front(type *listelm, type *elm) noexcept {
+    static pointer insert_front(type *listelm, type *elm) noexcept {
         register entry_type *listed = &(listelm->*__field);
         register entry_type *entry = &(elm->*__field);
         entry->insert_front(listed);
-        return __LIST_VALUE__(elm);
+        return __GV_LIST_VALUE__(elm);
     }
 
-    static value_type *remove(type *elm) noexcept {
+    static pointer remove(type *elm) noexcept {
         register entry_type *entry = &(elm->*__field);
         entry->remove();
-        return __LIST_VALUE__(elm);
+        return __GV_LIST_VALUE__(elm);
     }
 
-    value_type *next(type *elm) noexcept {
+    pointer next(type *elm) noexcept {
         register entry_type *entry = &(elm->*__field);
         entry = entry->next;
-        return entry == this ? nullptr : __LIST_VALUE__(__CLIST_OBJECT__(entry));
+        return entry == this ? nullptr : __GV_LIST_VALUE__(__CLIST_OBJECT__(entry));
     }
 
-    value_type *prev(type *elm) noexcept {
+    pointer prev(type *elm) noexcept {
         register entry_type *entry = &(elm->*__field);
         entry = entry->prev;
-        return entry == this ? nullptr : __LIST_VALUE__(__CLIST_OBJECT__(entry));
+        return entry == this ? nullptr : __GV_LIST_VALUE__(__CLIST_OBJECT__(entry));
     }
 
-    value_type *push_front(type *elm) noexcept {
+    pointer push_front(type *elm) noexcept {
         register entry_type *entry = &(elm->*__field);
         entry->insert_back(this);
-        return __LIST_VALUE__(elm);
+        return __GV_LIST_VALUE__(elm);
     }
 
-    value_type *push_back(type *elm) noexcept {
+    pointer push_back(type *elm) noexcept {
         register entry_type *entry = &(elm->*__field);
         entry->insert_front(this);
-        return __LIST_VALUE__(elm);
+        return __GV_LIST_VALUE__(elm);
     }
 
-    value_type *pop_front() noexcept {
+    pointer pop_front() noexcept {
         register entry_type *entry = _next;
         if (entry == this) {
             return nullptr;
         }
         else {
             entry->remove();
-            return __LIST_VALUE__(__CLIST_OBJECT__(entry));
+            return __GV_LIST_VALUE__(__CLIST_OBJECT__(entry));
         }
     }
 
-    value_type *pop_back() noexcept {
+    pointer pop_back() noexcept {
         register entry_type *entry = _prev;
         if (entry == this) {
             return nullptr;
         }
         else {
             entry->remove();
-            return __LIST_VALUE__(__CLIST_OBJECT__(entry));
+            return __GV_LIST_VALUE__(__CLIST_OBJECT__(entry));
         }
     }
 
-    value_type *first() noexcept {
-        return _next == this ? nullptr : __LIST_VALUE__(__CLIST_OBJECT__(_next));
+    pointer first() const noexcept {
+        return _next == this ? nullptr : __GV_LIST_VALUE__(__CLIST_OBJECT__(_next));
     }
 
-    value_type *last() noexcept {
-        return _prev == this ? nullptr : __LIST_VALUE__(__CLIST_OBJECT__(_prev));
+    pointer last() const noexcept {
+        return _prev == this ? nullptr : __GV_LIST_VALUE__(__CLIST_OBJECT__(_prev));
     }
 
-    value_type *front() noexcept {
-        return _next == this ? nullptr : __LIST_VALUE__(__CLIST_OBJECT__(_next));
+    pointer front() const noexcept {
+        return _next == this ? nullptr : __GV_LIST_VALUE__(__CLIST_OBJECT__(_next));
     }
 
-    value_type *back() noexcept {
-        return _prev == this ? nullptr : __LIST_VALUE__(__CLIST_OBJECT__(_prev));
+    pointer back() const noexcept {
+        return _prev == this ? nullptr : __GV_LIST_VALUE__(__CLIST_OBJECT__(_prev));
     }
 
-    bool empty() noexcept {
+    bool empty() const noexcept {
         return _prev == this;
     }
 
@@ -467,7 +481,11 @@ public:
         return iterator(_next);
     }
 
-    const iterator cbegin() const noexcept {
+    const_iterator begin() const noexcept {
+        return iterator(_next);
+    }
+
+    const_iterator cbegin() const noexcept {
         return iterator(_next);
     }
 
@@ -475,7 +493,11 @@ public:
         return iterator(this);
     }
 
-    const iterator cend() const noexcept {
+    const_iterator end() const noexcept {
+        return iterator(this);
+    }
+
+    const_iterator cend() const noexcept {
         return iterator(this);
     }
 
@@ -483,7 +505,11 @@ public:
         return reverse_iterator(_prev);
     }
 
-    const reverse_iterator crbegin() const noexcept {
+    const_reverse_iterator rbegin() const noexcept {
+        return reverse_iterator(_prev);
+    }
+
+    const_reverse_iterator crbegin() const noexcept {
         return reverse_iterator(_prev);
     }
 
@@ -491,29 +517,33 @@ public:
         return reverse_iterator(this);
     }
 
-    const reverse_iterator crend() const noexcept {
+    const_reverse_iterator rend() const noexcept {
+        return reverse_iterator(this);
+    }
+
+    const_reverse_iterator crend() const noexcept {
         return reverse_iterator(this);
     }
 };
 
 /* slist_entry */
 struct slist_entry {
-    static constexpr int type = list_type::slist;
+    static constexpr ListType type = ListType::slist;
 
     void *_next;
 };
 
-template <typename _T, typename _Entry, _Entry _T::*__field, typename _U>
-struct list <_T, _Entry, __field, _U, list_type::slist> {
+template <typename _T, typename _U, typename _Entry, _Entry _U::*__field>
+struct list <_T, _U, _Entry, __field, ListType::slist> {
 public:
-    typedef _T type;
-    typedef _U value_type;
-    typedef _Entry entry_type;
+    static_assert(std::is_same<_U, _T>::value || std::is_base_of<_U, _T>::value,
+                  "list _T must same with _U or derived from _U");
 
-private:
-    type *_first;
+    typedef _T          type;
+    typedef type&       reference;
+    typedef type*       pointer;
+    typedef _Entry      entry_type;
 
-public:
     class iterator {
     private:
         type *_ptr;
@@ -526,26 +556,22 @@ public:
             return *this;
         }
 
-        value_type& operator*() noexcept {
-            return *__LIST_VALUE__(_ptr);
+        reference operator*() noexcept {
+            return *__GV_LIST_VALUE__(_ptr);
         }
 
-        value_type* operator->() noexcept {
-            return __LIST_VALUE__(_ptr);
-        }
-
-        value_type* pointer() noexcept {
-            return __LIST_VALUE__(_ptr);
+        pointer operator->() noexcept {
+            return __GV_LIST_VALUE__(_ptr);
         }
 
         iterator& operator++() noexcept {
-            _ptr = __LIST_OBJECT__(__LIST_ENTRY__(_ptr)._next);
+            _ptr = __GV_LIST_OBJECT__(__GV_LIST_ENTRY__(_ptr)._next);
             return *this;
         }
 
         iterator operator++(int)noexcept {
             iterator tmp(_ptr);
-            _ptr = __LIST_OBJECT__(__LIST_ENTRY__(_ptr)._next);
+            _ptr = __GV_LIST_OBJECT__(__GV_LIST_ENTRY__(_ptr)._next);
             return tmp;
         }
 
@@ -557,7 +583,7 @@ public:
             return _ptr != x._ptr;
         }
     };
-
+    typedef const iterator const_iterator;
 public:
     list() noexcept : _first() {}
     list(const list &x) noexcept = delete;
@@ -580,61 +606,61 @@ public:
         std::swap(_first, x._first);
     }
 
-    static value_type *insert_back(type *listelm, type *elm) noexcept {
-        register entry_type &listed = __LIST_ENTRY__(listelm);
-        register entry_type &entry = __LIST_ENTRY__(elm);
+    static pointer insert_back(type *listelm, type *elm) noexcept {
+        register entry_type &listed = __GV_LIST_ENTRY__(listelm);
+        register entry_type &entry = __GV_LIST_ENTRY__(elm);
 
         entry._next = listed._next;
         listed._next = elm;
-        return __LIST_VALUE__(elm);
+        return __GV_LIST_VALUE__(elm);
     }
 
-    bool empty() noexcept {
+    bool empty() const noexcept {
         return !_first;
     }
 
-    value_type *first() noexcept {
-        return _first ? __LIST_VALUE__(_first) : nullptr;
+    pointer first() const noexcept {
+        return _first ? __GV_LIST_VALUE__(_first) : nullptr;
     }
 
-    value_type *front() noexcept {
-        return _first ? __LIST_VALUE__(_first) : nullptr;
+    pointer front() const noexcept {
+        return _first ? __GV_LIST_VALUE__(_first) : nullptr;
     }
 
-    static value_type *next(type *elm) noexcept {
-        void *p = __LIST_ENTRY__(elm)._next;
-        return p ? __LIST_VALUE__(__LIST_OBJECT__(p)) : nullptr;
+    static pointer next(type *elm) noexcept {
+        void *p = __GV_LIST_ENTRY__(elm)._next;
+        return p ? __GV_LIST_VALUE__(__GV_LIST_OBJECT__(p)) : nullptr;
     }
 
-    value_type *push_front(type *elm) noexcept {
-        register entry_type &entry = __LIST_ENTRY__(elm);
+    pointer push_front(type *elm) noexcept {
+        register entry_type &entry = __GV_LIST_ENTRY__(elm);
 
         entry._next = _first;
         _first = elm;
-        return __LIST_VALUE__(elm);
+        return __GV_LIST_VALUE__(elm);
     }
 
-    value_type *pop_front() noexcept {
+    pointer pop_front() noexcept {
         type *elm = _first;
         if (elm) {
-            _first = __LIST_OBJECT__(__LIST_ENTRY__(elm)._next);
-            return __LIST_VALUE__(elm);
+            _first = __GV_LIST_OBJECT__(__GV_LIST_ENTRY__(elm)._next);
+            return __GV_LIST_VALUE__(elm);
         }
         return nullptr;
     }
 
-    value_type *remove(type *elm, type *prev) noexcept {
+    pointer remove(type *elm, type *prev) noexcept {
         if (!prev) {
             return pop_front();
         }
         else {
-            register entry_type &entry = __LIST_ENTRY__(prev);
-            entry._next = __LIST_ENTRY__(entry._next)._next;
-            return __LIST_VALUE__(elm);
+            register entry_type &entry = __GV_LIST_ENTRY__(prev);
+            entry._next = __GV_LIST_ENTRY__(entry._next)._next;
+            return __GV_LIST_VALUE__(elm);
         }
     }
 
-    value_type *remove(type *elm) noexcept {
+    pointer remove(type *elm) noexcept {
         if (_first == elm) {
             return pop_front();
         }
@@ -642,15 +668,15 @@ public:
             type *curelm = _first;
             register entry_type *entry;
             while (curelm) {
-                entry = &__LIST_ENTRY__(curelm);
+                entry = &__GV_LIST_ENTRY__(curelm);
                 if (entry->_next == elm) {
                     break;
                 }
-                curelm = __LIST_OBJECT__(entry->_next);
+                curelm = __GV_LIST_OBJECT__(entry->_next);
             }
             if (curelm) {
-                entry->_next = __LIST_ENTRY__(entry->_next)._next;
-                return __LIST_VALUE__(elm);
+                entry->_next = __GV_LIST_ENTRY__(entry->_next)._next;
+                return __GV_LIST_VALUE__(elm);
             }
             return nullptr;
         }
@@ -660,7 +686,11 @@ public:
         return iterator(_first);
     }
 
-    const iterator begin() const noexcept {
+    const_iterator begin() const noexcept {
+        return iterator(_first);
+    }
+
+    const_iterator cbegin() const noexcept {
         return iterator(_first);
     }
 
@@ -668,29 +698,36 @@ public:
         return iterator(nullptr);
     }
 
-    const iterator end() const noexcept {
+    const_iterator end() const noexcept {
         return iterator(nullptr);
     }
+
+    const_iterator cend() const noexcept {
+        return iterator(nullptr);
+    }
+
+private:
+    type *_first;
 };
 
 /* stlist */
 struct stlist_entry {
-    static const int type = list_type::stlist;
+    static constexpr ListType type = ListType::stlist;
 
     void *_next;
 };
 
-template <typename _T, typename _Entry, _Entry _T::*__field, typename _U>
-struct list <_T, _Entry, __field, _U, list_type::stlist> {
+template <typename _T, typename _U, typename _Entry, _Entry _U::*__field>
+struct list <_T, _U, _Entry, __field, ListType::stlist> {
 public:
-    typedef _T type;
-    typedef _U value_type;
-    typedef _Entry entry_type;
+    static_assert(std::is_same<_U, _T>::value || std::is_base_of<_U, _T>::value,
+                  "list _T must same with _U or derived from _U");
 
-private:
-    type *_first;
-    type **_last;
-public:
+    typedef _T          type;
+    typedef type&       reference;
+    typedef type*       pointer;
+    typedef _Entry      entry_type;
+
     class iterator {
     private:
         type *_ptr;
@@ -703,26 +740,22 @@ public:
             return *this;
         }
 
-        value_type& operator*() noexcept {
-            return *__LIST_VALUE__(_ptr);
+        reference operator*() noexcept {
+            return *__GV_LIST_VALUE__(_ptr);
         }
 
-        value_type* operator->() noexcept {
-            return __LIST_VALUE__(_ptr);
-        }
-
-        value_type* pointer() noexcept {
-            return __LIST_VALUE__(_ptr);
+        pointer operator->() noexcept {
+            return __GV_LIST_VALUE__(_ptr);
         }
 
         iterator& operator++() noexcept {
-            _ptr = __LIST_OBJECT__(__LIST_ENTRY__(_ptr)._next);
+            _ptr = __GV_LIST_OBJECT__(__GV_LIST_ENTRY__(_ptr)._next);
             return *this;
         }
 
         iterator operator++(int)noexcept {
             iterator tmp(_ptr);
-            _ptr = __LIST_OBJECT__(__LIST_ENTRY__(_ptr)._next);
+            _ptr = __GV_LIST_OBJECT__(__GV_LIST_ENTRY__(_ptr)._next);
             return tmp;
         }
 
@@ -734,7 +767,7 @@ public:
             return _ptr != x._ptr;
         }
     };
-
+    typedef const iterator const_iterator;
 public:
     list() noexcept : _first(), _last(&_first) {}
     list(const list &) = delete;
@@ -763,79 +796,79 @@ public:
         _last = &_first;
     }
 
-    bool empty() noexcept {
+    bool empty() const noexcept {
         return !_first;
     }
 
-    value_type *first() noexcept {
-        return _first ? __LIST_VALUE__(_first) : nullptr;
+    pointer first() const noexcept {
+        return _first ? __GV_LIST_VALUE__(_first) : nullptr;
     }
 
-    value_type *front() noexcept {
-        return _first ? __LIST_VALUE__(_first) : nullptr;
+    pointer front() const noexcept {
+        return _first ? __GV_LIST_VALUE__(_first) : nullptr;
     }
 
-    static value_type *next(type *elm) noexcept {
-        void *p = __LIST_ENTRY__(elm)._next;
-        return p ? __LIST_VALUE__(__LIST_OBJECT__(p)) : nullptr;
+    static pointer next(type *elm) noexcept {
+        void *p = __GV_LIST_ENTRY__(elm)._next;
+        return p ? __GV_LIST_VALUE__(__GV_LIST_OBJECT__(p)) : nullptr;
     }
 
-    value_type *push_front(type *elm) noexcept {
-        register entry_type &entry = __LIST_ENTRY__(elm);
+    pointer push_front(type *elm) noexcept {
+        register entry_type &entry = __GV_LIST_ENTRY__(elm);
 
         if ((entry._next = _first) == nullptr) {
             _last = reinterpret_cast<type**>(&entry._next);
         }
         _first = elm;
-        return __LIST_VALUE__(elm);
+        return __GV_LIST_VALUE__(elm);
     }
 
-    value_type *push_back(type *elm) noexcept {
-        register entry_type &entry = __LIST_ENTRY__(elm);
+    pointer push_back(type *elm) noexcept {
+        register entry_type &entry = __GV_LIST_ENTRY__(elm);
 
         entry._next = nullptr;
         *_last = elm;
         _last = reinterpret_cast<type**>(&entry._next);
 
-        return __LIST_VALUE__(elm);
+        return __GV_LIST_VALUE__(elm);
     }
 
-    value_type* pop_front() noexcept {
+    pointer pop_front() noexcept {
         type* elm = _first;
         if (elm) {
-            if ((_first = __LIST_OBJECT__(__LIST_ENTRY__(elm)._next)) == nullptr) {
+            if ((_first = __GV_LIST_OBJECT__(__GV_LIST_ENTRY__(elm)._next)) == nullptr) {
                 _last = &_first;
             }
-            return __LIST_VALUE__(elm);
+            return __GV_LIST_VALUE__(elm);
         }
         return nullptr;
     }
 
-    value_type *insert_back(type *listelm, type *elm) noexcept {
-        register entry_type &listed = __LIST_ENTRY__(listelm);
-        register entry_type &entry = __LIST_ENTRY__(elm);
+    pointer insert_back(type *listelm, type *elm) noexcept {
+        register entry_type &listed = __GV_LIST_ENTRY__(listelm);
+        register entry_type &entry = __GV_LIST_ENTRY__(elm);
 
         if ((entry._next = listed._next) == nullptr) {
             _last = &entry._next;
         }
         listed._next = elm;
-        return __LIST_VALUE__(elm);
+        return __GV_LIST_VALUE__(elm);
     }
 
-    value_type *remove(type *elm, type *prev) noexcept {
+    pointer remove(type *elm, type *prev) noexcept {
         if (!prev) {
             return pop_front(elm);
         }
         else {
-            register entry_type &entry = __LIST_ENTRY__(prev);
-            if (ISnullptr(entry._next = __LIST_ENTRY__(entry._next)._next)) {
+            register entry_type &entry = __GV_LIST_ENTRY__(prev);
+            if (ISnullptr(entry._next = __GV_LIST_ENTRY__(entry._next)._next)) {
                 _last = &entry._next;
             }
-            return __LIST_VALUE__(elm);
+            return __GV_LIST_VALUE__(elm);
         }
     }
 
-    value_type *remove(type *elm) noexcept {
+    pointer remove(type *elm) noexcept {
         if (_first == elm) {
             return pop_front();
         }
@@ -843,17 +876,17 @@ public:
             type *curelm = _first;
             register entry_type *entry;
             while (curelm) {
-                entry = &__LIST_ENTRY__(curelm);
+                entry = &__GV_LIST_ENTRY__(curelm);
                 if (entry->_next == elm) {
                     break;
                 }
-                curelm = __LIST_OBJECT__(entry->_next);
+                curelm = __GV_LIST_OBJECT__(entry->_next);
             }
             if (curelm) {
-                if (!(entry->_next = __LIST_ENTRY__(entry->_next)._next)) {
+                if (!(entry->_next = __GV_LIST_ENTRY__(entry->_next)._next)) {
                     _last = reinterpret_cast<type**>(&entry->_next);
                 }
-                return __LIST_VALUE__(elm);
+                return __GV_LIST_VALUE__(elm);
             }
             return nullptr;
         }
@@ -863,7 +896,11 @@ public:
         return iterator(_first);
     }
 
-    const iterator begin() const noexcept {
+    const_iterator begin() const noexcept {
+        return iterator(_first);
+    }
+
+    const_iterator cbegin() const noexcept {
         return iterator(_first);
     }
 
@@ -871,16 +908,28 @@ public:
         return iterator(nullptr);
     }
 
-    const iterator end() const noexcept {
+    const_iterator end() const noexcept {
         return iterator(nullptr);
     }
+
+    const_iterator cend() const noexcept {
+        return iterator(nullptr);
+    }
+private:
+    type *_first;
+    type **_last;
 };
 
-#define gv_list(_T, entry, ...) list<                     \
-    typename member_of<decltype(&_T::entry)>::class_type, \
-    typename member_of<decltype(&_T::entry)>::type,       \
-    &_T::entry, ##__VA_ARGS__>
-
 GV_NS_END
+
+#define GV_FRIEND_LIST()                                   \
+template <                                                 \
+    typename _T,                                           \
+    typename _U,                                           \
+    typename _Entry,                                       \
+    _Entry _U::*,                                          \
+    GV_NS::ListType>                                       \
+friend struct GV_NS::list
+
 
 #endif

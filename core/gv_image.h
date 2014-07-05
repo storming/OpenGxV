@@ -14,9 +14,6 @@ class Image : public Object {
 public:
     static ptr<Image> load(const ptr<Path> &path, FileType type = FileType::UNKNOWN) noexcept;
 
-    bool a(int, int) {
-
-    }
     unsigned width() const noexcept {
         return _width;
     }
@@ -26,7 +23,7 @@ public:
     bool pmAlpha() const noexcept {
         return _pmAlpha;
     }
-    PixelInfo *pixelInfo() const noexcept {
+    const ptr<PixelInfo> &pixelInfo() const noexcept {
         return _pixelInfo;
     }
     std::vector<Chunk> &mipmaps() noexcept {
@@ -34,7 +31,7 @@ public:
     }
 protected:
     Image() noexcept;
-    PixelInfo *_pixelInfo;
+    ptr<PixelInfo> _pixelInfo;
     bool _pmAlpha;
     unsigned _width;
     unsigned _height;

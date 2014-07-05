@@ -2,13 +2,12 @@
 #define __GV_EVENT_DISPATCHER_H__
 
 #include "gv_object.h"
-#include "gv_list.h"
-#include "gv_rbtree.h"
+#include "gv_rbmap.h"
 #include "gv_event.h"
 
 GV_NS_BEGIN
 
-class EventListenerStub : public Object, public RBTree::node {
+class EventListenerStub : public Object {
     GV_FRIEND_PTR();
     friend class EventDispatcher;
 
@@ -16,11 +15,12 @@ class EventListenerStub : public Object, public RBTree::node {
         _dispatcher(dispatcher),
         _name(name), 
         _holder(holder),
-        _capture(capture ? 1 : 0),
+        _capture(capture ? 0 : 1),
         _priority(priority) { }
     ~EventListenerStub() noexcept;
     virtual void operator ()(ptr<Event>&) noexcept = 0;
 
+    map_entry        _entry;
     EventDispatcher *_dispatcher;
     Object          *_holder;
     ptr<UniStr>      _name;
@@ -85,7 +85,7 @@ public:
 
     virtual bool dispatchEvent(ptr<Event> &event);
 protected:
-    bool dispatchEvent(ptr<Event> &event, const ptr<EventDispatcher> *dispatchers, unsigned count, bool reverse);
+    bool dispatchEvent(ptr<Event> &event, const ptr<EventDispatcher> &target, const ptr<EventDispatcher> *dispatchers, unsigned count, bool reverse);
 
 private:
     bool dispatchEvent(ptr<Event> &event, bool capture);
@@ -95,7 +95,15 @@ private:
 protected:
     EventDispatcher *_parent;
 private:
-    RBTree _tree; 
+    struct compare {
+        int operator()(const EventListenerStub &lhs, const EventListenerStub &rhs) const noexcept {
+            return lhs._name < rhs._name ||
+                   lhs._capture < rhs._capture ||
+                   lhs._priority > rhs._priority ? -1 : 1;
+        }
+    };
+    typedef gv_map(EventListenerStub, EventListenerStub, _entry, compare) map_type;
+    map_type _map;
 };
 
 GV_NS_END

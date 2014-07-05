@@ -39,7 +39,7 @@ ptr<DisplayObject> DisplayObjectContainer::removeChild(DisplayObject *child) {
 }
 
 void DisplayObjectContainer::removeChildren() {
-    DisplayObject *child;
+    ptr<DisplayObject> child;
     while ((child = _list.pop_front())) {
         child->dettach(this);
     }

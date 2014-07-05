@@ -5,11 +5,11 @@
 
 GV_NS_BEGIN
 
-Image::Image() noexcept :
-_pixelInfo(),
-_pmAlpha(false),
-_width(),
-_height()
+Image::Image() noexcept 
+: _pixelInfo(),
+  _pmAlpha(false),
+  _width(),
+  _height()
 {}
 
 ptr<Image> Image::load(const ptr<Path> &path, FileType type) noexcept {

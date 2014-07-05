@@ -6,12 +6,12 @@
 #include "gv_graphics.h"
 #include "gv_log.h"
 #include "gv_list.h"
-
+#include "gv_eventdispatcher.h"
 GV_NS_BEGIN
 
 class DisplayObjectContainer;
 
-class DisplayObject : public Object {
+class DisplayObject : public EventDispatcher {
     GV_FRIEND_PTR();
     friend class DisplayObjectContainer;
 public:
@@ -72,6 +72,9 @@ public:
     virtual float scaleZ() const;
     virtual void scaleZ(float value);
 
+    DisplayObjectContainer *parent() const noexcept {
+        return static_cast<DisplayObjectContainer*>(_parent);
+    }
     Transform &transform() noexcept {
         return _transform;
     }
@@ -128,7 +131,6 @@ protected:
         BOUNDS_DIRTY            = 1 << 3,
     };
     Box2f _bounds;
-    DisplayObjectContainer *_parent;
     mutable Transform _transform;
     Transform _globalTransform;
     unsigned _flags;
