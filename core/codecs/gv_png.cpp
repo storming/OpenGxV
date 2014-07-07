@@ -1,4 +1,4 @@
-#include "opengv.h"
+#include "opengxv.h"
 #include "gv_png.h"
 #include "gv_pixel.h"
 #include "gv_chunk.h"
