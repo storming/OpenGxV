@@ -34,7 +34,25 @@ private:
 
     static void constructFailed();
     static void destroyFailed();
-
+    template <typename _T, typename ..._Args>
+    static _T *constructObject(_Args&&...args) noexcept {
+        ++_constructRef;
+        return new _T(std::forward<_Args>(args)...);
+    }
+    static void destroyObject(Object *obj) noexcept {
+        ++_destroyRef;
+        delete obj;
+    }
+    template <typename _T>
+    static _T *constructSingleton() noexcept {
+        _T *obj = constructObject<_T>();
+        if (!obj->init()){
+            destroyObject(obj);
+            return nullptr;
+        }
+        _singletons._stack.push(obj); 
+        return obj;
+    }
     mutable size_t _ref;
     static int _constructRef;
     static int _destroyRef;
@@ -91,14 +109,12 @@ private:
     }
     static void release_ptr(type *x) noexcept {
         if (x && !--x->_ref) {
-            ++Object::_destroyRef;
-            delete x;
+            Object::destroyObject(x);
         }
     }
     static void release_ptr(const type *x) noexcept {
         if (x && !--x->_ref) {
-            ++Object::_destroyRef;
-            delete x;
+            Object::destroyObject(x);
         }
     }
     void retain() noexcept {
@@ -194,7 +210,7 @@ public:
     template <typename ..._Args>
     object(_Args&&...args) noexcept {
         ++Object::_constructRef;
-        base::_ptr = new type(std::forward<_Args>(args)...);
+        base::_ptr = Object::constructObject<type>(std::forward<_Args>(args)...);
     }
 };
 

@@ -6,106 +6,91 @@
 
 #include "gv_object.h"
 #include "gv_hash.h"
+#include "gv_hashmap.h"
 #include "gv_singleton.h"
+#include "gv_chunk.h"
 
 GV_NS_BEGIN
 
 class UniStr : public Object {
     friend class UniStrPool;
-    friend class StaticUniStr;
-    GV_FRIEND_PTR();
+    friend class Object;
 private:
-    struct hash {
-        size_t operator()(const UniStr *x) const noexcept {
-            return x->_hash;
-        }
-    };
-    struct equal {
-        bool operator()(const UniStr *x, const UniStr *y) const noexcept {
-            return x->_size == y->_size && x->_hash == y->_hash && !std::memcmp(x->_string, y->_string, x->_size);
-        }
-    };
-    typedef std::unordered_set<ptr<UniStr>, hash, equal> map_type;
-    void release() noexcept;
-
-    UniStr() {}
-    ~UniStr() noexcept {
-        if (_string) {
-            std::free(_string);
-        }
-    }
+    UniStr(const char *str, size_t size) noexcept;
+    ~UniStr() noexcept;
+    hashmap_entry _entry;
 public:
     const char *c_str() const noexcept {
-        return _string;
+        return (const char*)_chunk.data();
     }
     size_t size() const {
-        return _size;
+        return _chunk.size();
     }
     size_t hash() const {
-        return _hash;
+        return _entry._hash;
     }
     operator const char*() const noexcept {
-        return _string;
+        return (const char*)_chunk.data();
     }
 private:
-    char *_string;
-    size_t _size;
-    size_t _hash;
-    map_type::iterator _it;
+    Chunk _chunk;
 };
 
 class UniStrPool : public Object, public singleton<UniStrPool> {
     friend class UniStr;
-    GV_FRIEND_SINGLETON();
+    friend class Object;
 public:
-    const ptr<UniStr> &get(const char *str, size_t size = 0) noexcept;
-    const ptr<UniStr> &get(const std::string &str) noexcept {
+    ptr<UniStr> get(const char *str, size_t size = 0) noexcept;
+    ptr<UniStr> get(const std::string &str) noexcept {
         return get(str.c_str(), str.size());
     }
 private:
-    UniStrPool() {}
-    UniStr::map_type _map;
-};
+    typedef std::pair<const char*, size_t> key_type;
+    struct hash {
+        hash_t operator()(const key_type &key) noexcept {
+            return hash_string(key.first, key.second);
+        }
+    };
+    struct equal {
+        bool operator()(const key_type &key, const UniStr &str) noexcept {
+            return key.second == str.size() && !std::memcmp(key.first, str.c_str(), key.second);
+        }
+    };
+    typedef gv_hashmap(key_type, UniStr, _entry, hash, equal) map_type;
 
-inline void UniStr::release() noexcept {
-    if (_string && ref() == 2) {
-        //Object::release();
-        UniStrPool::instance()->_map.erase(_it);
-    }
-    else {
-        //Object::release();
-    }
-}
+    UniStrPool() {}
+    map_type _map;
+};
 
 GV_NS_END
 
-inline const GV_NS::ptr<GV_NS::UniStr> &gv_unistr(const char *str, size_t size = 0) noexcept {
+inline GV_NS::ptr<GV_NS::UniStr> gv_unistr(const char *str, size_t size = 0) noexcept {
     return GV_NS::UniStrPool::instance()->get(str, size);
 }
 
-inline const GV_NS::ptr<GV_NS::UniStr> &gv_unistr(const std::string &str) noexcept {
+inline GV_NS::ptr<GV_NS::UniStr> gv_unistr(const std::string &str) noexcept {
     return GV_NS::UniStrPool::instance()->get(str);
 }
 
-#define GV_STATIC_UNISTR2(name, str)                      \
-static class __GV_STATIC_UNISTR_##name {                  \
-    struct impl : gv::Object, gv::singleton<impl> {       \
-        bool init() {                                     \
-            _str = gv::UniStrPool::instance()->get(#str); \
-            return true;                                  \
-        }                                                 \
-        gv::ptr<gv::UniStr> _str;                         \
-    };                                                    \
-public:                                                   \
-    operator gv::ptr<gv::UniStr>() const noexcept {       \
-        return impl::instance()->_str;                    \
-    }                                                     \
+#define GV_STATIC_UNISTR2(name, str)                         \
+static class __GV_STATIC_UNISTR_##name {                     \
+    struct impl : GV_NS::Object, GV_NS::singleton<impl> {    \
+        bool init() {                                        \
+            _str = GV_NS::UniStrPool::instance()->get(#str); \
+            return true;                                     \
+        }                                                    \
+        GV_NS::ptr<GV_NS::UniStr> _str;                      \
+    };                                                       \
+public:                                                      \
+    operator GV_NS::ptr<GV_NS::UniStr>() const noexcept {    \
+        return impl::instance()->_str;                       \
+    }                                                        \
 } name
 
-#define GV_STATIC_UNISTR(name)                            \
+#define GV_STATIC_UNISTR(name)                               \
 GV_STATIC_UNISTR2(name, #name)
 
-#define GV_IMPL_UNISTR(CLASS, name)                       \
+#define GV_IMPL_UNISTR(CLASS, name)                          \
 decltype(CLASS::name) CLASS::name
 
 #endif

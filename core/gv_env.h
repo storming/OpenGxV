@@ -10,7 +10,7 @@
 GV_NS_BEGIN
 
 class Env : public Object, public singleton<Env, Stage> {
-    GV_FRIEND_SINGLETON();
+    friend class Object;
 public:
     int maxTextureSize() const noexcept {
           return _maxTextureSize;

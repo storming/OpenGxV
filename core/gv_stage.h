@@ -47,9 +47,7 @@ enum class StageScaleMode {
 };
 
 class Stage final : public DisplayObjectContainer, public singleton<Stage> {
-    GV_FRIEND_PTR();
-    GV_FRIEND_SINGLETON();
-
+    friend class Object;
 public:
     void run() noexcept;
     StageScaleMode scaleMode() const noexcept;

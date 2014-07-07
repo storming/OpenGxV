@@ -31,7 +31,6 @@ class EventListenerStub : public Object {
 class EventDispatcher : public Object {
     friend class EventListenerStub;
 public:
-    EventDispatcher() noexcept : _parent() {}
     ~EventDispatcher() noexcept;
 
     template <typename _Functor>
@@ -83,17 +82,14 @@ public:
         return addEventListener(object<Stub>(this, name, holder, func, useCapture, priority));
     }
 
-    virtual bool dispatchEvent(ptr<Event> &event);
+    virtual bool dispatchEvent(ptr<Event> event);
 protected:
-    bool dispatchEvent(ptr<Event> &event, const ptr<EventDispatcher> &target, const ptr<EventDispatcher> *dispatchers, unsigned count, bool reverse);
+    bool dispatchEvent(ptr<Event> event, const ptr<EventDispatcher> &target, const ptr<EventDispatcher> *dispatchers, unsigned count);
 
 private:
-    bool dispatchEvent(ptr<Event> &event, bool capture);
+    bool dispatchEvent(ptr<Event> &event, bool cap);
     ptr<EventListenerStub> addEventListener(ptr<EventListenerStub> &stub) noexcept;
-    static void removeStub(EventListenerStub *stub);
 
-protected:
-    EventDispatcher *_parent;
 private:
     struct compare {
         int operator()(const EventListenerStub &lhs, const EventListenerStub &rhs) const noexcept {

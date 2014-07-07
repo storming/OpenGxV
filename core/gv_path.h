@@ -12,7 +12,7 @@ GV_NS_BEGIN
 
 class Path : public Object {
     friend class PathPool;
-    GV_FRIEND_PTR();
+    friend class Object;
 public:
     std::string name() const;
     std::string ext() const;
@@ -30,7 +30,7 @@ private:
 class PathPool : public Object, public singleton<PathPool, UniStrPool> {
     friend Path;
     friend class Chdir;
-    GV_FRIEND_SINGLETON();
+    friend class Object;
 public:
     ptr<Path> get(const char *str, size_t len = 0) noexcept;
     ptr<Path> get(const std::string &str) noexcept {

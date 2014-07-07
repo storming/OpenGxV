@@ -81,7 +81,6 @@ private:
     bool        _cancelable;
     bool        _bubbles;
     EventPhase  _eventPhase;
-    unsigned    _dispatchNum;
 
 public:
     /**

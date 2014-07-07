@@ -3,29 +3,24 @@
 
 GV_NS_BEGIN
 
-const ptr<UniStr> &UniStrPool::get(const char *str, size_t size) noexcept {
-    static object<UniStr> tmp;
+UniStr::UniStr(const char *str, size_t size) noexcept : _chunk(str, size + 1) {
+    _chunk[size] = '\0';
+}
+
+UniStr::~UniStr() noexcept {
+    UniStrPool::instance()->_map.erase(this);
+}
+
+ptr<UniStr> UniStrPool::get(const char *str, size_t size) noexcept {
     if (!size) {
         size = std::strlen(str);
     }
-    tmp->_string = (char*)str;
-    tmp->_size = size;
-    tmp->_hash = GV_NS::hash(str, size);
 
-    auto em = _map.emplace(tmp);
-    tmp->_string = nullptr;
-    if (!em.second) {
-        return *em.first;
-    }
-    object<UniStr> newstr;
-    newstr->_it = em.first;
-    newstr->_string = (char*)malloc(size + 1);
-    memcpy((char*)(newstr->_string), str, size);
-    *(newstr->_string + size) = '\0';
-    newstr->_size = size;
-    newstr->_hash = tmp->_hash;
-    (ptr<UniStr>&)(*em.first) = std::move(newstr);
-    return *em.first;
+    ptr<UniStr> tmp;
+    auto em = _map.emplace(std::pair<const char*, size_t>(str, size), [&](){
+        return tmp = object<UniStr>(str, size);
+    });
+    return std::addressof<UniStr>(*em.first);
 }
 
 GV_NS_END

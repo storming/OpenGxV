@@ -5,8 +5,6 @@
 
 GV_NS_BEGIN
 
-#define GV_FRIEND_SINGLETON() template <typename, typename...> friend class gv::singleton
-
 template <typename _T, typename ..._Deps>
 class singleton {
 private:
@@ -56,19 +54,12 @@ _Tx *singleton<_Tx, _Deps...>::construct_object() {
     if (!trace_deps<sizeof...(_Deps), std::tuple<_Deps...>>::check()) {
         return nullptr;
     }
-    _Tx *obj = new _Tx();
-    if (!obj) {
-        return nullptr;
-    }
-    if (!obj->init()) {
-        delete obj;
-        return nullptr;
-    }
-    Object::_singletons._stack.push(obj);
-    return obj;
+    return Object::constructSingleton<_Tx>();
 }
 
 GV_NS_END
+
+#define GV_FRIEND_SINGLETON() template <typename, typename...> friend class GV_NS::singleton
 
 #endif
 

@@ -12,7 +12,7 @@ Object::singletons::~singletons() {
     while (!_stack.empty()) {
         Object *obj = _stack.top();
         _stack.pop();
-        delete obj;
+        destroyObject(obj);
     }
 }
 

@@ -11,7 +11,7 @@ GV_NS_BEGIN
 class Texture : public Object {
     GV_FRIEND_PTR();
 public:
-    static ptr<Texture> create(Chunk *chunk, unsigned width, unsigned height, PixelInfo *info, size_t count = 1) noexcept;
+    static ptr<Texture> create(Chunk *chunk, unsigned width, unsigned height, const ptr<PixelInfo> &info, size_t count = 1) noexcept;
     static ptr<Texture> create(Image *image, PixelFormat format) noexcept;
     static ptr<Texture> create(const ptr<Path> &path, PixelFormat format = PixelFormat::UNKNOWN) noexcept;
 
@@ -20,7 +20,7 @@ public:
 protected:
     ~Texture();
 private:
-    PixelInfo *_pixelInfo;
+    ptr<PixelInfo> _pixelInfo;
     GLuint _id;
     bool _antialias;
     unsigned _width;

@@ -30,7 +30,7 @@ enum class FileType {
 };
 
 class File : public Object {
-    GV_FRIEND_PTR();
+    friend class Object;
 public:
     static FileType type(const char *str, size_t size = 0) noexcept;
     static FileType type(const std::string &name) noexcept {

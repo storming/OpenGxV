@@ -50,7 +50,7 @@ struct PixelInfo : Object {
     GLenum glType() const noexcept {
         return _glType;
     }
-    static PixelInfo *get(PixelFormat fmt) noexcept {
+    static ptr<PixelInfo> get(PixelFormat fmt) noexcept {
         gv_assert(fmt < PixelFormat::UNKNOWN, "unknown pixel format '%d'.", static_cast<int>(fmt));
         return _infos[static_cast<size_t>(fmt)];
     }

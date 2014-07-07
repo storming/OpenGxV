@@ -12,7 +12,7 @@ GV_NS_BEGIN
 class DisplayObjectContainer;
 
 class DisplayObject : public EventDispatcher {
-    GV_FRIEND_PTR();
+    friend class Object;
     friend class DisplayObjectContainer;
 public:
     Size2f size() const noexcept {
@@ -72,9 +72,10 @@ public:
     virtual float scaleZ() const;
     virtual void scaleZ(float value);
 
-    DisplayObjectContainer *parent() const noexcept {
-        return static_cast<DisplayObjectContainer*>(_parent);
+    DisplayObjectContainer *parent() noexcept {
+        return _parent;
     }
+
     Transform &transform() noexcept {
         return _transform;
     }
@@ -104,6 +105,7 @@ public:
     }
     void bringToFront() noexcept;
     void sendToBack() noexcept;
+    virtual bool dispatchEvent(ptr<Event> event) override;
     //virtual bool draw()
 protected:
     DisplayObject();
@@ -130,11 +132,12 @@ protected:
         TRANSFORM_DIRTY         = 1 << 2,
         BOUNDS_DIRTY            = 1 << 3,
     };
-    Box2f _bounds;
-    mutable Transform _transform;
-    Transform _globalTransform;
-    unsigned _flags;
-};
+    DisplayObjectContainer *_parent;
+    Box2f                  _bounds;
+    mutable Transform      _transform;
+    Transform              _globalTransform;
+    unsigned               _flags;
+}; 
 
 GV_NS_END
 

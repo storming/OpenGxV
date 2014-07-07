@@ -4,10 +4,7 @@
 
 GV_NS_BEGIN
 
-DisplayObject::DisplayObject() : 
-    _parent(),
-    _flags()
-{ 
+DisplayObject::DisplayObject() : _flags() { 
     _transform.makeAffine();
 }
 
@@ -206,6 +203,19 @@ void DisplayObject::sendToBack() noexcept {
         return;
     }
     _parent->_list.push_back(_parent->_list.remove(this));
+}
+
+bool DisplayObject::dispatchEvent(ptr<Event> event) {
+    static std::vector<ptr<EventDispatcher>> dispatchers;
+    size_t old_size = dispatchers.size();
+    DisplayObject *parent = _parent; 
+    while (parent) {
+        dispatchers.emplace_back(parent);
+        parent = parent->_parent;
+    }
+    bool ret = EventDispatcher::dispatchEvent(event, this, dispatchers.data() + old_size, dispatchers.size() - old_size);
+    dispatchers.resize(old_size);
+    return ret;
 }
 
 GV_NS_END

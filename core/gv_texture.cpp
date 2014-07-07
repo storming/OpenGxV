@@ -13,7 +13,7 @@ Texture::~Texture() {
     }
 }
 
-ptr<Texture> Texture::create(Chunk *chunk, unsigned width, unsigned height, PixelInfo *info, size_t count) noexcept {
+ptr<Texture> Texture::create(Chunk *chunk, unsigned width, unsigned height, const ptr<PixelInfo> &info, size_t count) noexcept {
     if (!width || !height || count < 1 || !info->support()) {
         return nullptr;
     }
@@ -94,13 +94,12 @@ ptr<Texture> Texture::create(Image *image, PixelFormat format) noexcept {
         return nullptr;
     }
 
-    PixelInfo *texPixelInfo;
+    ptr<PixelInfo> texPixelInfo;
     if (!image->pixelInfo()->compressed() && image->mipmaps().size() == 1) {
         if (format == PixelFormat::UNKNOWN) {
             format = Env::instance()->defaultPixelFormat;
         }
         texPixelInfo = PixelInfo::get(format);
-        const PixelInfo *texPixelInfo = PixelInfo::get(format);
         if (!texPixelInfo->support()) {
             gv_warning("unsupport texture pixel format '%s', texture use image pixel format '%s'.", texPixelInfo->desc(), image->pixelInfo()->desc());
             texPixelInfo = image->pixelInfo();

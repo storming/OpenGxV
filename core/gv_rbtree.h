@@ -1,5 +1,5 @@
-#ifndef __GV_RB_H__
-#define __GV_RB_H__
+#ifndef __GV_RBTREE_H__
+#define __GV_RBTREE_H__
 
 
 #include "gv_platform.h"
@@ -9,7 +9,7 @@ GV_NS_BEGIN
 #define GV_RB_RED   0
 #define GV_RB_BLACK 1
 
-class RBTree {
+class rbtree {
 public:
 	struct node {
 		unsigned long _parent_color;
@@ -99,7 +99,7 @@ private:
 	void erase_color(node *n, node *parent) noexcept;
 
 public:
-	RBTree() noexcept : _root(){}
+	rbtree() noexcept : _root(){}
 
 	bool empty() const noexcept {
 		return !_root;

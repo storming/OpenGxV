@@ -61,6 +61,11 @@ static void *operator new[](std::size_t size) {            \
 #endif
 #endif
 
+#if defined(__GNUC__)
+#define GV_UNUSED(x) x __attribute__((unused))
+#else
+#define GV_UNUSED(x) x
+#endif
 
 GV_NS_BEGIN
 
@@ -82,7 +87,7 @@ inline constexpr unsigned offsetof_member(_T _C::*member) {
 
 template <typename _T, typename _C>
 inline _C *containerof_member(_T *ptr, _T _C::*member) {
-    return reinterpret_cast<_C*>(reinterpret_cast<char*>(ptr)-offsetof_member(member));
+    return reinterpret_cast<_C*>(reinterpret_cast<char*>(ptr) - offsetof_member(member));
 }
 
 GV_NS_END

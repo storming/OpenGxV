@@ -16,7 +16,7 @@ enum class LogLevel {
 };
 
 class Log : public Object, public singleton<Log> {
-    GV_FRIEND_SINGLETON();
+    friend class Object;
 public:
     void begin(LogLevel level) noexcept;
     void end() noexcept;

@@ -23,14 +23,14 @@ ptr<EventListenerStub> EventDispatcher::addEventListener(ptr<EventListenerStub> 
     return stub;
 }
 
-inline bool EventDispatcher::dispatchEvent(ptr<Event> &event, bool capture) {
-    int cap = capture ? 0 : 1;
+inline  bool EventDispatcher::dispatchEvent(ptr<Event> &event, bool cap) {
+    int capture = cap ? 0 : 1;
     EventListenerStub *stub = nullptr;
     _map.find(
         event->_type,
         [&](const ptr<UniStr> &lhs, const EventListenerStub &rhs) noexcept {
             if (stub) {
-                if (lhs != rhs._name || cap != rhs._capture) {
+                if (lhs != rhs._name || capture != rhs._capture) {
                     return 0;
                 }
                 else {
@@ -38,12 +38,11 @@ inline bool EventDispatcher::dispatchEvent(ptr<Event> &event, bool capture) {
                 }
             }
             else {
-                int n = lhs - rhs._name;
-                if (n) {
+                int n;
+                if ((n = lhs - rhs._name)) {
                     return n;
                 }
-                n = cap - rhs._capture;
-                if (n) {
+                if ((n = capture - rhs._capture)) {
                     return n;
                 }
                 stub = (EventListenerStub*)std::addressof<const EventListenerStub>(rhs);
@@ -64,112 +63,81 @@ inline bool EventDispatcher::dispatchEvent(ptr<Event> &event, bool capture) {
         ptr<EventListenerStub> _stub;
         ptr<Object> _holder;
     };
-    std::vector<context> ctxs;
-    ctxs.reserve(16);
+    static std::vector<context> ctxs;
+    size_t old_size = ctxs.size();
     do {
         ctxs.emplace_back(stub, stub->_holder);
         stub = map_type::next(stub);
-    } while (stub && stub->_name == event->_type && stub->_capture == cap); 
+    } while (stub && stub->_name == event->_type && stub->_capture == capture); 
 
-    event->_currentTarget = this;
+    event->_currentTarget = this; 
     for (auto &ctx : ctxs) {
         (*ctx._stub)(event);
         if (event->_stop == Event::StopType::IMMEDIATE) {
             break;
         }
     }
-    return event->_stop == Event::StopType::NONE; 
-}
-
-bool EventDispatcher::dispatchEvent(ptr<Event> &event, 
-                                    const ptr<EventDispatcher> &target, 
-                                    const ptr<EventDispatcher> *dispatchers, 
-                                    unsigned count, 
-                                    bool reverse) noexcept {
-    const ptr<EventDispatcher> *dispatcher, *end;
-    event->_target = target;
-
-    if (reverse) {
-        if (count && event->_bubbles) {
-            dispatcher = dispatchers + count - 1;
-            end = dispatchers;
-            event->_eventPhase = EventPhase::CAPTURING_PHASE;
-            for (; dispatcher >= end; --dispatcher) {
-                if (!(*dispatcher)->dispatchEvent(event, true)) {
-                    return true;
-                }
-            }
-        }
-
-        event->_eventPhase = EventPhase::AT_TARGET;
-        if (!target->dispatchEvent(event, false)) {
-            return true;
-        }
-
-        if (count) {
-            dispatcher = dispatchers; 
-            end = dispatchers + count;
-            event->_eventPhase = EventPhase::BUBBLING_PHASE;
-            for (; dispatcher < end; ++dispatcher) {
-                if (!(*dispatcher)->dispatchEvent(event, false)) {
-                    return true;
-                }
-            }
-        }
-    }
-    else {
-        if (count && event->_bubbles) {
-            dispatcher = dispatchers;
-            end = dispatchers + count;
-            event->_eventPhase = EventPhase::CAPTURING_PHASE;
-            for (; dispatcher < end; ++dispatcher) {
-                if (!(*dispatcher)->dispatchEvent(event, true)) {
-                    return true;
-                }
-            }
-        }
-
-        event->_eventPhase = EventPhase::AT_TARGET;
-        if (!target->dispatchEvent(event, false)) {
-            return true;
-        }
-
-        if (count) {
-            end = dispatchers; 
-            dispatcher = dispatchers + count - 1;
-            event->_eventPhase = EventPhase::BUBBLING_PHASE;
-            for (; dispatcher >= end; --dispatcher) {
-                if (!(*dispatcher)->dispatchEvent(event, false)) {
-                    return true;
-                }
-            }
-        }
-    }
+    ctxs.resize(old_size);
     return true; 
 }
 
-bool EventDispatcher::dispatchEvent(ptr<Event> &event) {
-    if (event->_dispatchNum++) {
+bool EventDispatcher::dispatchEvent(ptr<Event> event, 
+                                    const ptr<EventDispatcher> &target, 
+                                    const ptr<EventDispatcher> *dispatchers, 
+                                    unsigned count) noexcept {
+    const ptr<EventDispatcher> *dispatcher, *end;
+
+    if (event->_target) {
         event = event->clone();
     }
+    event->_target = target; 
 
-    if (event->_bubbles && _parent) {
-        std::vector<ptr<EventDispatcher>> dispatchers;
-        dispatchers.reserve(64);
-        EventDispatcher *parent = _parent; 
-        while (parent) {
-            dispatchers.emplace_back(parent);
-            parent = parent->_parent;
-        }
-        if (!dispatchEvent(event, this, dispatchers.data(), dispatchers.size(), true)) {
-            return false;
+    if (count) {
+        dispatcher = dispatchers + count - 1;
+        end = dispatchers;
+        event->_eventPhase = EventPhase::CAPTURING_PHASE;
+        for (; dispatcher >= end; --dispatcher) {
+            if (!(*dispatcher)->dispatchEvent(event, true)) {
+                return false;
+            }
+            if (event->_stop != Event::StopType::NONE) {
+                return event->isDefaultPrevented(); 
+            }
         }
     }
-    else {
-        ptr<EventDispatcher> p(this);
-        if (!dispatchEvent(event, this, nullptr, 0, true)) {
-            return false;
+
+    event->_eventPhase = EventPhase::AT_TARGET;
+    if (!target->dispatchEvent(event, false)) {
+        return false;
+    }
+    if (event->_stop != Event::StopType::NONE) {
+        return event->isDefaultPrevented(); 
+    }
+
+    if (count && event->_bubbles) {
+        dispatcher = dispatchers; 
+        end = dispatchers + count;
+        event->_eventPhase = EventPhase::BUBBLING_PHASE;
+        for (; dispatcher < end; ++dispatcher) {
+            if (!(*dispatcher)->dispatchEvent(event, false)) {
+                return false;
+            }
+            if (event->_stop != Event::StopType::NONE) {
+                break;
+            }
         }
+    }
+    return event->isDefaultPrevented(); 
+}
+
+bool EventDispatcher::dispatchEvent(ptr<Event> event) {
+    if (event->_target) {
+        event = event->clone();
+    }
+    event->_target = this;
+    event->_eventPhase = EventPhase::AT_TARGET;
+    if (!dispatchEvent(event, false)) {
+        return false;
     }
     return event->isDefaultPrevented(); 
 }
