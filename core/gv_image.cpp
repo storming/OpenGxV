@@ -1,4 +1,4 @@
-#include "opengv.h"
+#include "opengxv.h"
 #include "gv_image.h"
 #include "gv_file.h"
 #include "codecs/gv_png.h"

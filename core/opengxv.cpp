@@ -1,4 +1,4 @@
-#include "opengv.h"
+#include "opengxv.h"
 
 #include "gv_platform.h"
 #include "gv_object.h"

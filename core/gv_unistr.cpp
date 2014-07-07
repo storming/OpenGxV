@@ -1,4 +1,4 @@
-#include "opengv.h"
+#include "opengxv.h"
 #include "gv_unistr.h"
 
 GV_NS_BEGIN

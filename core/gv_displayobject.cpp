@@ -1,4 +1,4 @@
-#include "opengv.h"
+#include "opengxv.h"
 #include "gv_displayobject.h"
 #include "gv_displayobjectcontainer.h"
 
