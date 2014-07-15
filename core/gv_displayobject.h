@@ -7,138 +7,133 @@
 #include "gv_log.h"
 #include "gv_list.h"
 #include "gv_eventdispatcher.h"
+
 GV_NS_BEGIN
 
 class DisplayObjectContainer;
+class Stage;
 
 class DisplayObject : public EventDispatcher {
     friend class Object;
     friend class DisplayObjectContainer;
+    friend class Stage;
 public:
-    Size2f size() const noexcept {
-          return _bounds.size();
-    }
+    virtual Size2f size() const;
     virtual void size(const Size2f &value);
 
-    float width() const noexcept {
-        return _bounds.width();
-    }
+    virtual float width() const;
     virtual void width(float value);
 
-    float height() const noexcept {
-        return _bounds.height();
-    }
+    virtual float height() const;
     virtual void height(float value);
 
-    const Box2f &bounds() {
-        if (_flags & BOUNDS_DIRTY) {
-            updateBounds();
-        }
-        return _bounds;
-    }
+    virtual Vec3f position() const;
+    virtual void position(const Vec3f &value);
 
-    Transform::TranslationPart position() const {
-        return _transform.translation();
-    }
-    void position(const Vec3f &value);
-    float x() const {
-        return _transform.translation().x();
-    }
-    void x(float value);
-    float y() const noexcept {
-        return _transform.translation().y();
-    }
-    void y(float value);
-    float z() const noexcept {
-        return _transform.translation().z();
-    }
+    virtual float x() const;
+    virtual void x(float value);
+
+    virtual float y() const;
+    virtual void y(float value);
+
+    virtual float z() const;
     void z(float value);
 
     virtual Vec3f rotation() const;
     virtual void rotation(const Vec3f &value);
+
     virtual float rotationX() const;
     virtual void rotationX(float value);
+
     virtual float rotationY() const;
     virtual void rotationY(float value);
+
     virtual float rotationZ() const;
     virtual void rotationZ(float value);
 
     virtual Vec3f scale() const;
     virtual void scale(const Vec3f &value);
+
     virtual float scaleX() const;
     virtual void scaleX(float value);
+
     virtual float scaleY() const;
     virtual void scaleY(float value);
+
     virtual float scaleZ() const;
     virtual void scaleZ(float value);
 
-    DisplayObjectContainer *parent() noexcept {
+    virtual bool visible() const;
+    virtual void visible(bool value);
+
+    const ptr<UniStr> &name() const noexcept {
+        return _name;
+    }
+
+    void name(const ptr<UniStr> &value) noexcept {
+        _name = value;
+    }
+
+    void name(const char *value) noexcept {
+        _name = unistr(value);
+    }
+
+    void name(const std::string &value) noexcept {
+        _name = unistr(value);
+    }
+
+    DisplayObjectContainer *parent() const noexcept {
         return _parent;
     }
 
+    Stage *stage() const noexcept {
+        return _stage;
+    }
+
     Transform &transform() noexcept {
-        return _transform;
+        return *_transform;
     }
-    void transform(const Transform &t) noexcept {
-        if (std::addressof<const Transform>(t) != &_transform) {
-            _transform = t;
+
+    void transform(const Transform &mat) noexcept {
+        const Transform *m = std::addressof<const Transform>(mat);
+        if (!m){
+            return;
         }
-        _flags |= (BOUNDS_DIRTY | TRANSFORM_DIRTY);
-    }
-    const Transform &globalTransform() noexcept {
-        if (_flags & TRANSFORM_DIRTY && _parent) {
-            _globalTransform = reinterpret_cast<DisplayObject*>(_parent)->globalTransform() * _transform;
-            _flags &= (~TRANSFORM_DIRTY);
+        if (m != _transform){
+            *_transform = mat;
         }
-        return _globalTransform;
+        _transformDirty = true;
+        updateBounds();
     }
-    virtual bool visible() {
-        return (_flags & VISIBLE_FLAG) != 0;
-    }
-    virtual void visible(bool value) {
-        if (value) {
-            _flags |= VISIBLE_FLAG;
-        }
-        else {
-            _flags &= (~VISIBLE_FLAG);
-        }
-    }
-    void bringToFront() noexcept;
-    void sendToBack() noexcept;
+
+    const Transform &concatenatedTransform() noexcept;
+    virtual Box2f bounds(DisplayObject *targetCoordinateSpace);
     virtual bool dispatchEvent(ptr<Event> event) override;
-    //virtual bool draw()
-protected:
-    DisplayObject();
 
-    virtual void updateBounds();
+protected:
+    DisplayObject() noexcept : DisplayObject(false) { }
     virtual Box2f contentBounds() = 0;
-
-    void linear(Vec3f *rot, Matrix3f *scale) const;
-    void linear(Matrix3f *rot, Matrix3f *scale) const {
-        _transform.computeRotationScaling(rot, scale);
-    }
+    virtual void updateBounds();
 
 private:
-    bool attach(DisplayObjectContainer *container) noexcept;
-    void dettach(DisplayObjectContainer *container) noexcept;
+    DisplayObject(bool iscontainer) noexcept;
+    void updateBounds(const Box2f &bounds) noexcept;
+    bool dispatchEvent(DisplayObject *parent, ptr<Event> event) noexcept;
 
 private:
-    clist_entry _entry;
-
-protected:
-    enum {
-        VISIBLE_FLAG            = 1 << 0,
-        OOV_FLAG                = 1 << 1,
-        TRANSFORM_DIRTY         = 1 << 2,
-        BOUNDS_DIRTY            = 1 << 3,
-    };
+    clist_entry             _entry;
     DisplayObjectContainer *_parent;
-    Box2f                  _bounds;
-    mutable Transform      _transform;
-    Transform              _globalTransform;
-    unsigned               _flags;
+    Stage                  *_stage;
+    ptr<UniStr>             _name;
+    owned_ptr<Transform>    _transform;
+    owned_ptr<Transform>    _concatenatedTransform;
+    Box2f                   _bounds;
+    bool                    _iscontainer;
+    bool                    _visible;
+    bool                    _transformDirty;
 }; 
 
 GV_NS_END
 
 #endif
+

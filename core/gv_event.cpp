@@ -22,11 +22,11 @@ Event::Event(const ptr<UniStr> &type, bool bubbles, bool cancelable) noexcept
 { }
 
 Event::Event(const char *type, bool bubbles, bool cancelable) noexcept 
-: Event(gv_unistr(type), bubbles, cancelable) 
+: Event(unistr(type), bubbles, cancelable) 
 { }
 
 Event::Event(const std::string &type, bool bubbles, bool cancelable) noexcept 
-: Event(gv_unistr(type), bubbles, cancelable) 
+: Event(unistr(type), bubbles, cancelable) 
 { }
 
 GV_NS_END

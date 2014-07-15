@@ -1,15 +1,30 @@
 #include "opengxv.h"
 #include "gv_displayobject.h"
 #include "gv_displayobjectcontainer.h"
+#include "gv_stage.h"
 
 GV_NS_BEGIN
 
-DisplayObject::DisplayObject() : _flags() { 
-    _transform.makeAffine();
+static std::vector<ptr<DisplayObject>> __objects;
+
+DisplayObject(bool iscontainer) noexcept
+: _parent(),
+  _stage(),
+  _iscontainer(iscontainer),
+  _visible(true),
+  _transformDirty(false)
+{
+    _matrix = new Matrix;
+    _matrix->setIdentity();
+    _concatenatedMatrix = new Matrix;
+}
+
+Size2f DisplayObject::size() const {
+    return _bounds.size();
 }
 
 void DisplayObject::size(const Size2f &value) {
-    if (!_bounds) {
+    if (_bounds.empty()) {
         return;
     }
     Size2f boundsSize = _bounds.size();
@@ -18,56 +33,93 @@ void DisplayObject::size(const Size2f &value) {
     }
     float sx = value.width / boundsSize.width;
     float sy = value.height / boundsSize.height;
-    _transform = _transform * Scaling(sx, sy, 0.f);
-    transform(_transform);
+    *_transform = (*_transform) * Scaling(sx, sy, 0.f);
+    _transformDirty = true;
+    updateBounds();
+}
+
+float DisplayObject::width() const {
+    return size().width;
 }
 
 void DisplayObject::width(float value) {
     size(Size2f(value, height()));
 }
 
+float DisplayObject::height() const {
+    return size().height;
+}
+
 void DisplayObject::height(float value) {
     size(Size2f(width(), value));
 }
 
+Vec3f DisplayObject::position() const {
+    return Vec3f(_transform->translation());
+}
+
 void DisplayObject::position(const Vec3f &value) {
-    Vec3f d = value - _transform.translation();
-    _transform.translation() = value;
-    _bounds += Vec2f(d.x(), d.y());
-    _flags |= TRANSFORM_DIRTY;
+    auto pos = _transform->translation();
+    if (pos != value) {
+        Vec3f d = value - position(); 
+        pos = value;
+        _transformDirty = true;
+        updateBounds(_bounds + Vec2f(d.x(), d.y()));
+    }
+}
+
+float DisplayObject::x() const {
+    return position().x();
 }
 
 void DisplayObject::x(float value) {
-    float d = value - _transform.translation().x();
-    _transform.translation().x() = value;
-    _bounds.min.x() += d;
-    _bounds.max.x() += d;
-    _flags |= TRANSFORM_DIRTY;
+    auto pos = _transform->translation();
+    if (pos.x() != value) {
+        float d = value - pos.x();
+        pos.x() = value;
+        _transformDirty = true;
+        updateBounds(_bounds + Vec2f(d, 0));
+    }
+}
+
+float DisplayObject::y() const {
+    return position().y();
 }
 
 void DisplayObject::y(float value) {
-    float d = value - _transform.translation().y();
-    _transform.translation().y() = value;
-    _bounds.min.y() += d;
-    _bounds.max.y() += d;
-    _flags |= TRANSFORM_DIRTY;
+    auto pos = _transform->translation();
+    if (pos.y() != value) {
+        float d = value - pos.y();
+        pos.y() = value;
+        _transformDirty = true;
+        updateBounds(_bounds + Vec2f(0, d));
+    }
+}
+
+float DisplayObject::z() const {
+    return position().z();
 }
 
 void DisplayObject::z(float value) {
-    _transform.translation().z() = value;
-    _flags |= TRANSFORM_DIRTY;
+    auto pos = _transform->translation();
+    if (pos.z() != value) {
+        pos.z() = value;
+        _transformDirty = true;
+    }
 }
 
 Vec3f DisplayObject::rotation() const {
     Vec3f rot;
-    linear(&rot, nullptr);
+    _transform->linear(&rot, nullptr);
     return math::angle(rot);
 }
+
 void DisplayObject::rotation(const Vec3f &value) {
     Matrix3f scale;
-    linear((Vec3f*)nullptr, &scale);
-    _transform.linear() = math::rotation(math::radian(value)) * scale;
-    transform(_transform);
+    _transform->linear((Vec3f*)nullptr, &scale);
+    _transform->linear() = math::rotation(math::radian(value)) * scale;
+    _transformDirty = true;
+    updateBounds();
 }
 
 float DisplayObject::rotationX() const {
@@ -77,10 +129,11 @@ float DisplayObject::rotationX() const {
 void DisplayObject::rotationX(float value) {
     Vec3f rot;
     Matrix3f scale;
-    linear(&rot, &scale);
+    _transform->linear(&rot, &scale);
     rot.x() = math::radian(value);
-    _transform.linear() = math::rotation(rot) * scale;
-    transform(_transform);
+    _transform->linear() = math::rotation(rot) * scale;
+    _transformDirty = true;
+    updateBounds();
 }
 
 float DisplayObject::rotationY() const {
@@ -90,10 +143,11 @@ float DisplayObject::rotationY() const {
 void DisplayObject::rotationY(float value) {
     Vec3f rot;
     Matrix3f scale;
-    linear(&rot, &scale);
+    _transform->linear(&rot, &scale);
     rot.y() = math::radian(value);
-    _transform.linear() = math::rotation(rot) * scale;
-    transform(_transform);
+    _transform->linear() = math::rotation(rot) * scale;
+    _transformDirty = true;
+    updateBounds();
 }
 
 float DisplayObject::rotationZ() const {
@@ -103,119 +157,162 @@ float DisplayObject::rotationZ() const {
 void DisplayObject::rotationZ(float value) {
     Vec3f rot;
     Matrix3f scale;
-    linear(&rot, &scale);
+    _transform->linear(&rot, &scale);
     rot.z() = math::radian(value);
-    _transform.linear() = math::rotation(rot) * scale;
-    transform(_transform);
+    _transform->linear() = math::rotation(rot) * scale;
+    _transformDirty = true;
+    updateBounds();
 }
 
 Vec3f DisplayObject::scale() const {
     Matrix3f m;
-    linear((Matrix3f*)nullptr, &m);
+    _transform->linear((Matrix3f*)nullptr, &m);
     return Vec3f(m(0, 0), m(1, 1), m(2, 2));
 }
+
 void DisplayObject::scale(const Vec3f &value) {
     Matrix3f rot;
-    linear(&rot, nullptr);
-    _transform.linear() = rot * Scaling(value);
-    transform(_transform);
+    _transform->linear(&rot, nullptr);
+    _transform->linear() = rot * Scaling(value);
+    _transformDirty = true;
+    updateBounds();
 }
+
 float DisplayObject::scaleX() const {
     return scale().x();
 }
+
 void DisplayObject::scaleX(float value) {
     Matrix3f rot;
-    linear(&rot, nullptr);
-    _transform.linear() = rot * Scaling(value, 0.f, 0.f);
-    transform(_transform);
+    _transform->linear(&rot, nullptr);
+    _transform->linear() = rot * Scaling(value, 0.f, 0.f);
+    _transformDirty = true;
+    updateBounds();
 }
 
 float DisplayObject::scaleY() const {
     return scale().y();
 }
+
 void DisplayObject::scaleY(float value) {
     Matrix3f rot;
-    linear(&rot, nullptr);
-    _transform.linear() = rot * Scaling(0.f, value, 0.f);
-    transform(_transform);
+    _transform->linear(&rot, nullptr);
+    _transform->linear() = rot * Scaling(0.f, value, 0.f);
+    _transformDirty = true;
+    updateBounds();
 }
+
 float DisplayObject::scaleZ() const {
     return scale().z();
 }
+
 void DisplayObject::scaleZ(float value) {
     Matrix3f rot;
-    linear(&rot, nullptr);
-    _transform.linear() = rot * Scaling(0.f, 0.f, value);
-    transform(_transform);
+    _transform->linear(&rot, nullptr);
+    _transform->linear() = rot * Scaling(0.f, 0.f, value);
+    _transformDirty = true;
+    updateBounds();
 }
 
-void DisplayObject::linear(Vec3f *rot, Matrix3f *scale) const {
-    Matrix3f m;
-    linear(&m, scale);
-    *rot = m.eulerAngles(0, 1, 2);
+bool DisplayObject::visible() const {
+    return _visible;
 }
 
-void DisplayObject::updateBounds() {
-    _flags &= ~BOUNDS_DIRTY;
-    if (!_bounds) {
-        return;
-    }
-    Box2f b = contentBounds();
+void DisplayObject::visible(bool value) {
+    _visible = value;
+}
 
-    Affine2f t;
-    const Transform &trans = globalTransform();
-    t.matrix().topLeftCorner(2, 2) = trans.matrix().topLeftCorner(2, 2);
-    t.matrix().topRightCorner(2, 1) = trans.matrix().topRightCorner(2, 1);
-    Vec2f c1(b.min.x(), b.max.y());
-    Vec2f c2(b.max.x(), b.min.y());
-    Box2f bounds;
-    bounds.min = _bounds.max = t * b.min;
-    bounds |= t * b.min;
-    bounds |= t * c1;
-    bounds |= t * c2;
-
-    if (_bounds != bounds && _parent) {
-        _parent->updateBounds(this, &bounds);
+inline void DisplayObject::updateBounds(const Box2f &bounds) noexcept {
+    if (_parent) {
+        _parent->updateChildBounds(this, _bounds, bounds);
     }
     _bounds = bounds;
 }
 
-bool DisplayObject::attach(DisplayObjectContainer *container) noexcept {
-    gv_assert(!_parent, "child already has parent.");
-    _parent = container;
-    _flags |= (TRANSFORM_DIRTY | BOUNDS_DIRTY);
-    return true;
+void DisplayObject::updateBounds() {
+    updateBounds((*_transform) * contentBounds());
 }
 
-void DisplayObject::dettach(DisplayObjectContainer *container) noexcept {
-    _parent = nullptr;
-}
-
-void DisplayObject::bringToFront() noexcept {
-    if (!_parent) {
-        return;
+const Transform &DisplayObject::concatenatedTransform() noexcept {
+    size_t old_size = __objects.size();
+    DisplayObject *parent = _parent; 
+    size_t n = -1;
+    while (parent) {
+        __objects.emplace_back(parent);
+        if (parent->_transformDirty) {
+            n = __objects.size();
+        }
+        parent = parent->_parent; 
     }
-    _parent->_list.push_front(_parent->_list.remove(this));
+    Transform *trans;
+    if (n != -1) {
+        DisplayObject *obj = __objects[n];
+        if (obj->_parent) {
+            *obj->_concatenatedTransform = (*obj->_parent->_concatenatedTransform) * (*obj->_transform);
+            trans = obj->_concatenatedTransform;
+        }
+        else {
+            trans = obj->_transform;
+        }
+        for (--n; n <= old_size; --n) {
+            obj = __objects[n];
+            *obj->_concatenatedTransform = (*trans) * (*obj->_transform);
+            trans = obj->_concatenatedTransform;
+        }
+    }
+    else {
+        if (!_parent) {
+            trans = _transform;
+            goto finish;
+        }
+        if (!_transformDirty) {
+            trans = _concatenatedTransform;
+            goto finish;
+        }
+        trans = _parent->_concatenatedTransform; 
+    }
+
+    *_concatenatedTransform = (*trans) * (*_transform);
+    trans = _concatenatedTransform;
+finish:
+    __objects.resize(old_size); 
+    return *trans; 
 }
 
-void DisplayObject::sendToBack() noexcept {
-    if (!_parent) {
-        return;
+Box2f DisplayObject::bounds(DisplayObject *targetCoordinateSpace) {
+    if (targetCoordinateSpace == _parent) {
+        return _bounds;
     }
-    _parent->_list.push_back(_parent->_list.remove(this));
+
+    if (targetCoordinateSpace != this) {
+        if (!targetCoordinateSpace) {
+            targetCoordinateSpace = Stage::instance();
+        }
+        if (_parent) {
+            return targetCoordinateSpace->concatenatedTransform().inverse() * 
+                (_parent->_concatenatedTransform() * _bounds);
+        }
+        else {
+            return targetCoordinateSpace->concatenatedTransform().inverse() * _bounds;
+        }
+    }
+
+    return contentBounds();
+}
+
+bool DisplayObject::dispatchEvent(DisplayObject *parent, ptr<Event> event) noexcept {
+    size_t old_size = __objects.size();
+    while (parent) {
+        __objects.emplace_back(parent);
+        parent = parent->_parent;
+    }
+    bool ret = EventDispatcher::dispatchEvent(event, this, (ptr<EventDispatcher>*)__objects.data() + old_size, __objects.size() - old_size);
+    __objects.resize(old_size);
+    return ret;
 }
 
 bool DisplayObject::dispatchEvent(ptr<Event> event) {
-    static std::vector<ptr<EventDispatcher>> dispatchers;
-    size_t old_size = dispatchers.size();
-    DisplayObject *parent = _parent; 
-    while (parent) {
-        dispatchers.emplace_back(parent);
-        parent = parent->_parent;
-    }
-    bool ret = EventDispatcher::dispatchEvent(event, this, dispatchers.data() + old_size, dispatchers.size() - old_size);
-    dispatchers.resize(old_size);
-    return ret;
+    return dispatchEvent(_parent, event);
 }
 
 GV_NS_END

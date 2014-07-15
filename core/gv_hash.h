@@ -46,7 +46,7 @@ inline hash64_t hash64(const void *key, size_t len, hash64_t initval = 0x0100019
 template <typename _T>
 struct hash {
     hash_t operator()(const _T &obj) noexcept {
-        return (hash_t)hash64(std::address_of<const _T>(obj), strlen(_T));
+        return (hash_t)hash64(std::addressof<const _T>(obj), sizeof(_T));
     }
 };
 

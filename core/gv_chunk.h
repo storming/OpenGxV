@@ -1,6 +1,7 @@
 #ifndef __GV_CHUNK_H__
 #define __GV_CHUNK_H__
 
+#include <cstdlib>
 #include "gv_object.h"
 
 GV_NS_BEGIN
@@ -13,7 +14,7 @@ public:
     }
     Chunk(const void *p, size_t size) noexcept : _size(size) {
         _data = (unsigned char*)std::malloc(size);
-        std::memcpy(_data, p, _size);
+        memcpy(_data, p, _size);
     }
     Chunk(const Chunk &) = delete;
     Chunk(Chunk &&x) noexcept : _data(), _size() {

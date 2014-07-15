@@ -168,7 +168,7 @@ public:
      */
     GV_STATIC_UNISTR(CHANGE);
     
-        
+    GV_STATIC_UNISTR(REMOVED);
 }; 
 
 GV_NS_END

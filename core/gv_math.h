@@ -9,8 +9,6 @@ GV_NS_BEGIN
 
 typedef Eigen::Vector2f         Vec2f;
 typedef Eigen::Vector3f         Vec3f;
-typedef Eigen::Affine3f         Transform;
-
 using Eigen::Matrix4f;
 using Eigen::Matrix3f;
 using Eigen::Affine3f;
@@ -84,8 +82,10 @@ struct Box2f final {
         return (min.array() > x.min.array()).all() && (x.max.array() > max.array()).all();
     }
     Box2f &operator |=(const Vec2f &x) noexcept {
-        min = min.cwiseMin(x);
-        max = max.cwiseMax(x);
+        if (!empty()) {
+            min = min.cwiseMin(x); 
+            max = max.cwiseMax(x);
+        }
         return *this;
     }
     const Box2f operator |(const Vec2f &x) const noexcept {
@@ -94,8 +94,15 @@ struct Box2f final {
         return result;
     }
     Box2f &operator |=(const Box2f &x) noexcept {
-        min = min.cwiseMin(x.min);
-        max = max.cwiseMax(x.max);
+        if (!x.empty()) {
+            if (empty()) {
+                *this = x;
+            }
+            else {
+                min = min.cwiseMin(x.min); 
+                max = max.cwiseMax(x.max);
+            }
+        }
         return *this;
     }
     const Box2f operator |(const Box2f &x) const noexcept {
@@ -104,8 +111,13 @@ struct Box2f final {
         return result;
     }
     Box2f &operator &=(const Box2f &x) noexcept {
-        min = min.cwiseMax(x.min);
-        max = max.cwiseMin(x.max);
+        if (empty() || x.empty()) {
+            setZero();
+        }
+        else {
+            min = min.cwiseMax(x.min); 
+            max = max.cwiseMin(x.max);
+        }
         return *this;
     }
     const Box2f operator &(const Box2f &x) const noexcept {
@@ -129,18 +141,47 @@ struct Box2f final {
     const Box2f operator-(const Vec2f &x) const noexcept {
         return Box2f(min - x, max - x);
     }
-    operator bool() const noexcept {
+    bool empty() const noexcept {
         return (min.array() <= max.array()).any();
     }
     bool operator==(const Box2f &rhs) const noexcept {
-        return min == rhs.min && max == rhs.max;
+        if (empty() && rhs.empty()){
+            return true;
+        }
+        return min == rhs.min && max == rhs.max; 
     }
     bool operator!=(const Box2f &rhs) const noexcept {
+        if (empty() && rhs.empty()){
+            return false;
+        }
         return min != rhs.min || max != rhs.max;
     }
 };
 
-GV_NS_MATH_BEGIN
+struct Transform : Affine3f {
+    using Affine3f::operator*;
+    using Affine3f::operator=;
+    using Affine3f::linear;
+
+    void linear(Matrix3f *rot, Matrix3f *scale) const noexcept {
+        computeRotationScaling(rot, scale);
+    }
+    void linear(Vec3f *rot, Matrix3f *scale) const noexcept {
+        Matrix3f m;
+        linear(&m, scale);
+        *rot = m.eulerAngles(0, 1, 2);
+    }
+};
+
+Box2f operator*(const Affine3f &lhs, const Box2f &rhs) noexcept {
+    Vec3f min(rhs.min.x(), rhs.min.y(), 0.0f);
+    Vec3f max(rhs.max.x(), rhs.max.y(), 0.0f);
+    min = lhs * min;
+    max = lhs * max;
+    return Box2f(Vec2f(min.x(), min.y()), Vec2f(max.x(), max.y()));
+}
+
+GV_MATH_BEGIN
 
 inline AngleAxisf angleAxis(float value, Axis axis) noexcept {
     static AngleAxisf zerox(0, Vec3f::UnitX());
@@ -180,7 +221,7 @@ inline float angle(float radian) noexcept {
 inline Vec3f angle(const Vec3f &v) noexcept {
     return Vec3f(angle(v.x()), angle(v.y()), angle(v.z()));
 }
-GV_NS_MATH_END
+GV_MATH_END
 
 GV_NS_END
 

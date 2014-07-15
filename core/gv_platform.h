@@ -24,23 +24,23 @@ extern "C" {
 #if defined(WIN32) || defined(__MINGW32__)
 #define NOMINMAX 1
 #include <windows.h>
-#if defined(WIN32)
+#if !defined(__MINGW32__)
 #define noexcept throw()
 #define constexpr const
 #endif
 #endif
 
-#define GV_NS gv
-#define GV_NS_BEGIN namespace GV_NS {
-#define GV_NS_END }
+#define GV_NS               gv
+#define GV_NS_BEGIN         namespace GV_NS {
+#define GV_NS_END           }
 
-#define GV_MATH_NS math
-#define GV_NS_MATH_BEGIN namespace GV_MATH_NS {
-#define GV_NS_MATH_END }
+#define GV_MATH_NS          math
+#define GV_MATH_BEGIN       namespace GV_MATH_NS {
+#define GV_MATH_END         }
 
-#define GV_INTERNAL_NS internal
-#define GV_INTERNAL_BEGIN namespace GV_INTERNAL_NS {
-#define GV_INTERNAL_END }
+#define GV_INTERNAL_NS      internal
+#define GV_INTERNAL_BEGIN   namespace GV_INTERNAL_NS {
+#define GV_INTERNAL_END     }
 
 #define GV_RESTRAIN_NEW()                                  \
 private:                                                   \

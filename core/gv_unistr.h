@@ -3,6 +3,7 @@
 
 #include <unordered_set>
 #include <string>
+#include <cstdlib>
 
 #include "gv_object.h"
 #include "gv_hash.h"
@@ -53,7 +54,7 @@ private:
     };
     struct equal {
         bool operator()(const key_type &key, const UniStr &str) noexcept {
-            return key.second == str.size() && !std::memcmp(key.first, str.c_str(), key.second);
+            return key.second == str.size() && !memcmp(key.first, str.c_str(), key.second);
         }
     };
     typedef gv_hashmap(key_type, UniStr, _entry, hash, equal) map_type;
@@ -62,15 +63,15 @@ private:
     map_type _map;
 };
 
+inline ptr<UniStr> unistr(const char *str, size_t size = 0) noexcept {
+    return UniStrPool::instance()->get(str, size);
+}
+
+inline ptr<UniStr> unistr(const std::string &str) noexcept {
+    return UniStrPool::instance()->get(str);
+}
+
 GV_NS_END
-
-inline GV_NS::ptr<GV_NS::UniStr> gv_unistr(const char *str, size_t size = 0) noexcept {
-    return GV_NS::UniStrPool::instance()->get(str, size);
-}
-
-inline GV_NS::ptr<GV_NS::UniStr> gv_unistr(const std::string &str) noexcept {
-    return GV_NS::UniStrPool::instance()->get(str);
-}
 
 #define GV_STATIC_UNISTR2(name, str)                         \
 static class __GV_STATIC_UNISTR_##name {                     \

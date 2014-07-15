@@ -132,7 +132,7 @@ struct rbmap_iterator {
         return *this;
     }
     rbmap_iterator operator++(int) noexcept {
-        iterator tmp(*this);
+        rbmap_iterator tmp(*this);
         _entry = static_cast<entry_type*>(_entry->next());
         return tmp;
     }
@@ -141,15 +141,15 @@ struct rbmap_iterator {
         return *this;
     }
     rbmap_iterator operator--(int) noexcept {
-        iterator tmp(*this);
+        rbmap_iterator tmp(*this);
         _entry = static_cast<entry_type*>(_entry->prev());
         return tmp;
     }
     bool operator==(const rbmap_iterator &rhs) const noexcept {
-        return _entry == x._entry;
+        return _entry == rhs._entry;
     }
     bool operator!=(const rbmap_iterator &rhs) const noexcept {
-        return _entry != x._entry;
+        return _entry != rhs._entry;
     }
 
     entry_type *_entry;
@@ -178,7 +178,7 @@ struct rbmap_const_iterator {
         return *this;
     }
     rbmap_const_iterator operator++(int) noexcept {
-        iterator tmp(*this);
+        rbmap_const_iterator tmp(*this);
         _entry = static_cast<entry_type*>(_entry->next());
         return tmp;
     }
@@ -187,15 +187,15 @@ struct rbmap_const_iterator {
         return *this;
     }
     rbmap_const_iterator operator--(int) noexcept {
-        iterator tmp(*this);
+        rbmap_const_iterator tmp(*this);
         _entry = static_cast<entry_type*>(_entry->prev());
         return tmp;
     }
     bool operator==(const rbmap_const_iterator &rhs) const noexcept {
-        return _entry == x._entry;
+        return _entry == rhs._entry;
     }
     bool operator!=(const rbmap_const_iterator &rhs) const noexcept {
-        return _entry != x._entry;
+        return _entry != rhs._entry;
     }
 
     entry_type *_entry;
@@ -343,7 +343,7 @@ public:
         return elm;
     }
     pointer erase(iterator &it) noexcept {
-        return erase(std::address_of<pointer>(*it));
+        return erase(std::addressof<pointer>(*it));
     }
     pointer erase(const key_type &key) noexcept {
         return erase(find(key));
@@ -399,7 +399,7 @@ public:
         return nullptr;
     }
     pointer replace(iterator &it, pointer new_elm) noexcept {
-        return replace(std::address_of<pointer*>(*it), new_elm);
+        return replace(std::addressof<pointer*>(*it), new_elm);
     }
     pointer front() const noexcept {
         return traits_type::get_pointer(get_left(this));
@@ -489,7 +489,7 @@ public:
     std::pair<iterator, bool> emplace(const key_type &key, _Construct &&construct, _Args&&...args) noexcept {
         return base::emplace(
             key, 
-            constructor(std::forward<_Construct>(construct)),
+            constructor<_Construct>(std::forward<_Construct>(construct)),
             std::forward<_Args>(args)...);
     }
     pointer erase(typename base::pointer elm) noexcept {
@@ -520,18 +520,20 @@ public:
         return tmp;
     }
     void clear() noexcept {
-        base::clear([](base::pointer elm){
+        base::clear([](typename base::pointer elm){
             pointer::release_ptr(elm);
         });
     }
 private:
     template <typename _Construct>
     struct constructor {
-        const _Construct &_construct;
-        constructor(const _Construct &construct) : _construct(construct) {}
+        _Construct _construct;
+
+        template <typename _A>
+        constructor(_A &&construct) : _construct(std::forward<_A>(construct)) {}
         template <typename ..._Args>
         _T* operator()(_Args&&...args) {
-            auto tmp = construct(std::forward<_Args>(args));
+            auto tmp = construct(std::forward<_Args>(args)...);
             pointer::retain_ptr(tmp);
             return tmp;
         }

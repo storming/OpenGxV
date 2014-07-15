@@ -16,7 +16,7 @@ add_library(opengv STATIC
 	gv_stage.cpp
 	gv_texture.cpp
 	gv_unistr.cpp
-	opengv.cpp
+	opengxv.cpp
 )
 	
 target_link_libraries(opengv

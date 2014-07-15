@@ -6,19 +6,14 @@
 GV_NS_BEGIN
 
 class DisplayObjectContainer : public DisplayObject {
-    GV_FRIEND_PTR();
-    friend DisplayObject;
+    friend class Object;
+    friend class DisplayObject;
 private:
     typedef gv_list(ptr<DisplayObject>, _entry) container_base;
 
 public:
     class ContainerType : protected container_base {
         friend class DisplayObjectContainer;
-        friend class DisplayObject;
-    protected:
-        ContainerType() noexcept : container_base() {}
-        ContainerType(const ContainerType&) = delete;
-        ContainerType(ContainerType &&x) noexcept : container_base(std::move(x)) {}
     public:
         using container_base::swap;
         using container_base::operator=;
@@ -35,22 +30,52 @@ public:
         using container_base::end;
         using container_base::rbegin;
         using container_base::rend;
+        using container_base::cbegin;
+        using container_base::cend;
+        using container_base::crbegin;
+        using container_base::crend;
+        unsigned size() const noexcept {
+            return _size;
+        }
+    protected:
+        ContainerType() noexcept : container_base() {}
+        ContainerType(const ContainerType&) = delete;
+        ContainerType(ContainerType &&x) noexcept : container_base(std::move(x)) {}
+    private:
+        unsigned _size;
     };
 
-    virtual DisplayObject *addChild(ptr<DisplayObject> child);
-    virtual DisplayObject *addChild(ptr<DisplayObject> child, DisplayObject *before);
-    virtual void swapChild(DisplayObject *a, DisplayObject *b);
-    virtual DisplayObject *child(size_t index);
-    const ContainerType &children() noexcept {
-        return _list;
-    }
-    virtual ptr<DisplayObject> removeChild(DisplayObject *child);
+    virtual DisplayObject *addChild(const ptr<DisplayObject> &child);
+    virtual DisplayObject *addChild(const ptr<DisplayObject> &child, unsigned index);
+    virtual DisplayObject *addChild(const ptr<DisplayObject> &child, DisplayObject *before);
+
+    virtual ptr<DisplayObject> removeChild(const ptr<DisplayObject> &child);
+    virtual ptr<DisplayObject> removeChild(unsigned index);
     virtual void removeChildren();
+
+    unsigned getChildIndex(DisplayObject *child);
+    virtual void setChildIndex(DisplayObject *child, unsigned index);
+
+    DisplayObject *getChildAt(unsigned index);
+    DisplayObject *getChildByName(UniStr *name, bool recursive = false);
+    bool contains(DisplayObject *child);
+
+    virtual void swapChildren(const ptr<DisplayObject> &a, const ptr<DisplayObject> &b);
+    virtual void swapChildren(unsigned a, unsigned b);
+
+    virtual void bringChildToFront(const ptr<DisplayObject> &child);
+    virtual void sendChildToBack(const ptr<DisplayObject> &child);
+
 protected:
-    DisplayObjectContainer() noexcept {}
-    virtual void updateBounds(DisplayObject *child, Box2f *newBounds);
-    virtual void updateBounds() override;
+    DisplayObjectContainer() noexcept;
+    virtual void updateChildBounds(DisplayObject *child, const Box2f &oldBounds, const Box2f &newBounds);
+    virtual Box2f contentBounds() override;
+
 private:
+    ptr<DisplayObject> removeChild(const ptr<DisplayObject> &child, bool update);
+
+private:
+    Box2f _childrenBounds;
     ContainerType _list;
 };
 

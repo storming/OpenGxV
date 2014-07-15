@@ -72,7 +72,7 @@ class ptr {
     template <typename _T1, typename _T2> friend ptr<_T1> ptr_cast(const ptr<_T2>&);
     template <
         typename _Key,
-        typename _T,
+        typename _Tx,
         typename _U,
         typename _Entry,
         _Entry _U::*__field,
@@ -236,7 +236,7 @@ public:
     typedef _T type;
     owned_ptr() noexcept : _ptr() {}
     owned_ptr(type *ptr) noexcept : _ptr(ptr) {}
-    owned_ptr(const ptr &x) = delete;
+    owned_ptr(const owned_ptr &x) = delete;
     owned_ptr(owned_ptr &&x) noexcept : _ptr() {
         std::swap(_ptr, x._ptr);
     }
@@ -291,7 +291,7 @@ class list<ptr<_T>, _U, _Entry, __field, ListType::list> : private list<_T, _U, 
 public:
     typedef list<_T, _U, _Entry, __field>   base;
     typedef typename base::type             type;
-    typedef ptr<typename type>              pointer;
+    typedef ptr<type>                       pointer;
     typedef const pointer                   const_pointer;
 
     using base::swap;
@@ -303,6 +303,8 @@ public:
     using base::iterator;
     using base::begin;
     using base::end;
+    using base::cbegin;
+    using base::cend;
 
     list() noexcept : base() {}
     list(const list&) = delete;
@@ -354,7 +356,7 @@ class list<ptr<_T>, _U, _Entry, __field, ListType::clist> : private list<_T, _U,
 public:
     typedef list<_T, _U, _Entry, __field>   base;
     typedef typename base::type             type;
-    typedef ptr<typename type>              pointer;
+    typedef ptr<type>                       pointer;
     typedef const pointer                   const_pointer;
 
     using base::swap;
@@ -370,8 +372,12 @@ public:
     using base::reverse_iterator;
     using base::begin;
     using base::end;
+    using base::cbegin;
+    using base::cend;
     using base::rbegin;
     using base::rend;
+    using base::crbegin;
+    using base::crend;
 
     list() noexcept : base() {}
     list(const list&) = delete;
@@ -435,7 +441,7 @@ class list<ptr<_T>, _U, _Entry, __field, ListType::slist> : private list<_T, _U,
 public:
     typedef list<_T, _U, _Entry, __field>   base;
     typedef typename base::type             type;
-    typedef ptr<typename type>              pointer;
+    typedef ptr<type>                       pointer;
     typedef const pointer                   const_pointer;
 
     using base::swap;
@@ -447,6 +453,8 @@ public:
     using base::iterator;
     using base::begin;
     using base::end;
+    using base::cbegin;
+    using base::cend;
 
     list() noexcept : base() {}
     list(const list&) = delete;
@@ -498,7 +506,7 @@ class list<ptr<_T>, _U, _Entry, __field, ListType::stlist> : private list<_T, _U
 public:
     typedef list<_T, _U, _Entry, __field>   base;
     typedef typename base::type             type;
-    typedef ptr<typename type>              pointer;
+    typedef ptr<type>                       pointer;
     typedef const pointer                   const_pointer;
 
     using base::swap;
@@ -510,6 +518,8 @@ public:
     using base::iterator;
     using base::begin;
     using base::end;
+    using base::cbegin;
+    using base::cend;
 
     list() noexcept : base() {}
     list(const list&) = delete;

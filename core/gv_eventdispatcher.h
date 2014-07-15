@@ -7,11 +7,13 @@
 
 GV_NS_BEGIN
 
+class EventDispatcher;
+
 class EventListenerStub : public Object {
-    GV_FRIEND_PTR();
+    friend class Object;
     friend class EventDispatcher;
 
-    EventListenerStub(EventDispatcher *dispatcher, const ptr<UniStr> name, Object *holder, bool capture, int priority) noexcept : 
+    EventListenerStub(EventDispatcher *dispatcher, const ptr<UniStr> &name, Object *holder, bool capture, int priority) noexcept : 
         _dispatcher(dispatcher),
         _name(name), 
         _holder(holder),
@@ -30,6 +32,18 @@ class EventListenerStub : public Object {
 
 class EventDispatcher : public Object {
     friend class EventListenerStub;
+
+    template <typename _Functor>
+    struct FunctorStub : EventListenerStub {
+        _Functor _functor;
+        void operator()(ptr<Event> &e)noexcept override {
+            _functor(e);
+        }
+        template <typename _F>
+        FunctorStub(EventDispatcher *dispatcher, const ptr<UniStr> &name, Object *holder, _F &&functor, bool useCapture, int priority) noexcept :
+            EventListenerStub(dispatcher, name, holder, useCapture, priority),
+            _functor(std::forward<_F>(functor)){ }
+    };
 public:
     ~EventDispatcher() noexcept;
 
@@ -41,17 +55,7 @@ public:
         bool useCapture = false,
         int priority = 0)noexcept 
     {
-        struct Stub : EventListenerStub {
-            _Functor _functor;
-            void operator()(ptr<Event> &e)noexcept override {
-                _functor(e);
-            }
-            template <typename _F>
-            Stub(EventDispatcher *dispatcher, const ptr<UniStr> &name, _F &&functor, bool useCapture, int priority) noexcept :
-                EventListenerStub(dispatcher, name, holder, useCapture, priority),
-                _functor(std::forward<_F>(functor)){ }
-        };
-        return addEventListener(object<Stub>(this, name, holder, std::forward<_Functor>(functor), useCapture, priority));
+        return addEventListener(object<FunctorStub<_Functor>>(this, name, holder, std::forward<_Functor>(functor), useCapture, priority));
     }
 
     template<typename _T>

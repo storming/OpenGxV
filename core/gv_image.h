@@ -9,7 +9,7 @@
 GV_NS_BEGIN
 
 class Image : public Object {
-    GV_FRIEND_PTR();
+    friend class Object;
     friend class PngCodec;
 public:
     static ptr<Image> load(const ptr<Path> &path, FileType type = FileType::UNKNOWN) noexcept;

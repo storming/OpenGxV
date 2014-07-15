@@ -8,7 +8,7 @@
 GV_NS_BEGIN
 
 inline ptr<Path> PathPool::probe(ptr<Path> &parent, const char *name, unsigned len) noexcept {
-    ptr<UniStr> str = gv_unistr(name, len);
+    ptr<UniStr> str = unistr(name, len);
     ptr<Path> path;
     auto em = _map.emplace(str, [&]() {
         path = object<Path>();

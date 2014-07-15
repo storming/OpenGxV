@@ -413,13 +413,13 @@ public:
 
     pointer next(type *elm) noexcept {
         register entry_type *entry = &(elm->*__field);
-        entry = entry->next;
+        entry = entry->_next;
         return entry == this ? nullptr : __GV_LIST_VALUE__(__CLIST_OBJECT__(entry));
     }
 
     pointer prev(type *elm) noexcept {
         register entry_type *entry = &(elm->*__field);
-        entry = entry->prev;
+        entry = entry->_prev;
         return entry == this ? nullptr : __GV_LIST_VALUE__(__CLIST_OBJECT__(entry));
     }
 
@@ -924,7 +924,7 @@ GV_NS_END
 
 #define GV_FRIEND_LIST()                                   \
 template <                                                 \
-    typename _T,                                           \
+    typename _Tx,                                          \
     typename _U,                                           \
     typename _Entry,                                       \
     _Entry _U::*,                                          \
