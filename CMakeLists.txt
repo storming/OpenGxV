@@ -15,7 +15,7 @@ set(OPENGV_LIBDEPS
 
 if(MINGW)
     set(OS_NAME "mingw")
-	set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-std=c++11 -O0 -g")
+	set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-std=c++11 -O0 -g -Wall")
 elseif(WIN32)
     set(OS_NAME "win32")
 	ADD_DEFINITIONS(
