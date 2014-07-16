@@ -15,8 +15,8 @@ class EventListenerStub : public Object {
 
     EventListenerStub(EventDispatcher *dispatcher, const ptr<UniStr> &name, Object *holder, bool capture, int priority) noexcept : 
         _dispatcher(dispatcher),
-        _name(name), 
         _holder(holder),
+        _name(name), 
         _capture(capture ? 0 : 1),
         _priority(priority) { }
     ~EventListenerStub() noexcept;
@@ -26,8 +26,8 @@ class EventListenerStub : public Object {
     EventDispatcher *_dispatcher;
     Object          *_holder;
     ptr<UniStr>      _name;
-    int              _priority;
     int              _capture; 
+    int              _priority;
 };
 
 class EventDispatcher : public Object {

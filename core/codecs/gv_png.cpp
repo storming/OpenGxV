@@ -20,7 +20,7 @@ PngCodec::decoder::~decoder() noexcept {
 void PngCodec::decoder::callback(png_structp png, png_bytep data, png_size_t size) noexcept {
     decoder* self = (decoder*)png_get_io_ptr(png);
 
-    if (self->_file->read(data, size) != size) {
+    if (self->_file->read(data, size) != (int)size) {
         png_error(png, "read callback failed");
     }
 }

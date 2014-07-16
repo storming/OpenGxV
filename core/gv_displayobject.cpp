@@ -3,21 +3,21 @@
 #include "gv_displayobjectcontainer.h"
 #include "gv_stage.h"
 
-GV_NS_BEGIN
+namespace gv {
 
-static std::vector<ptr<DisplayObject>> __objects;
-
-DisplayObject(bool iscontainer) noexcept
+DisplayObject::DisplayObject(bool iscontainer) noexcept
 : _parent(),
   _stage(),
   _iscontainer(iscontainer),
   _visible(true),
   _transformDirty(false)
 {
-    _matrix = new Matrix;
-    _matrix->setIdentity();
-    _concatenatedMatrix = new Matrix;
+    //_matrix = new Matrix;
+    //_matrix->setIdentity();
+    //_concatenatedMatrix = new Matrix;
 }
+
+static std::vector<ptr<DisplayObject>> __objects;
 
 Size2f DisplayObject::size() const {
     return _bounds.size();
@@ -245,7 +245,7 @@ const Transform &DisplayObject::concatenatedTransform() noexcept {
         parent = parent->_parent; 
     }
     Transform *trans;
-    if (n != -1) {
+    if (n != (size_t)-1) {
         DisplayObject *obj = __objects[n];
         if (obj->_parent) {
             *obj->_concatenatedTransform = (*obj->_parent->_concatenatedTransform) * (*obj->_transform);
@@ -290,7 +290,7 @@ Box2f DisplayObject::bounds(DisplayObject *targetCoordinateSpace) {
         }
         if (_parent) {
             return targetCoordinateSpace->concatenatedTransform().inverse() * 
-                (_parent->_concatenatedTransform() * _bounds);
+                (_parent->concatenatedTransform() * _bounds);
         }
         else {
             return targetCoordinateSpace->concatenatedTransform().inverse() * _bounds;

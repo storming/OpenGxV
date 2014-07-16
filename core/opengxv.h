@@ -1,7 +1,7 @@
 #ifndef __OPENGV_H__
 #define __OPENGV_H__
 
-#ifndef __LIBOPENGV__
+#ifndef __LIBOPENGXV__
 #include "gv_platform.h"
 #include "gv_object.h"
 #include "gv_singleton.h"

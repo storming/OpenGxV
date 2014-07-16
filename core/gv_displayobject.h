@@ -5,7 +5,6 @@
 #include "gv_math.h"
 #include "gv_graphics.h"
 #include "gv_log.h"
-#include "gv_list.h"
 #include "gv_eventdispatcher.h"
 
 GV_NS_BEGIN
@@ -17,6 +16,7 @@ class DisplayObject : public EventDispatcher {
     friend class Object;
     friend class DisplayObjectContainer;
     friend class Stage;
+    GV_FRIEND_LIST();
 public:
     virtual Size2f size() const;
     virtual void size(const Size2f &value);

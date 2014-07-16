@@ -1,7 +1,8 @@
 #include "opengxv.h"
+
+#include <vector>
 #include "gv_eventdispatcher.h"
 #include "gv_log.h"
-#include <map>
 
 GV_NS_BEGIN
 
@@ -84,7 +85,7 @@ inline  bool EventDispatcher::dispatchEvent(ptr<Event> &event, bool cap) {
 bool EventDispatcher::dispatchEvent(ptr<Event> event, 
                                     const ptr<EventDispatcher> &target, 
                                     const ptr<EventDispatcher> *dispatchers, 
-                                    unsigned count) noexcept {
+                                    unsigned count) {
     const ptr<EventDispatcher> *dispatcher, *end;
 
     if (event->_target) {

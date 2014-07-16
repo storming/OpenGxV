@@ -13,7 +13,7 @@ UniStr::~UniStr() noexcept {
 
 ptr<UniStr> UniStrPool::get(const char *str, size_t size) noexcept {
     if (!size) {
-        size = std::strlen(str);
+        size = strlen(str);
     }
 
     ptr<UniStr> tmp;

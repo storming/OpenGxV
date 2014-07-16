@@ -1,4 +1,3 @@
-//#if 1
 #ifndef __GV_RBMAP_H__
 #define __GV_RBMAP_H__
 
@@ -214,6 +213,11 @@ class rbmap :
     protected rbtree, 
     protected rbmap_left_acc_policy<_Entry, __left_acc>,
     protected rbmap_right_acc_policy<_Entry, __right_acc> {
+
+    using rbmap_left_acc_policy<_Entry, __left_acc>::set_left;
+    using rbmap_left_acc_policy<_Entry, __left_acc>::test_left;
+    using rbmap_right_acc_policy<_Entry, __right_acc>::set_right;
+    using rbmap_right_acc_policy<_Entry, __right_acc>::test_right;
 public:
     typedef rbmap_traits<_T, _U, _Entry, __field>   traits_type;
     typedef _Entry                                  entry_type;

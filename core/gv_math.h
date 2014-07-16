@@ -173,7 +173,7 @@ struct Transform : Affine3f {
     }
 };
 
-Box2f operator*(const Affine3f &lhs, const Box2f &rhs) noexcept {
+inline Box2f operator*(const Affine3f &lhs, const Box2f &rhs) noexcept {
     Vec3f min(rhs.min.x(), rhs.min.y(), 0.0f);
     Vec3f max(rhs.max.x(), rhs.max.y(), 0.0f);
     min = lhs * min;

@@ -73,9 +73,9 @@ private:
         IMMEDIATE,
     };
 
+    ptr<UniStr> _type;
     ptr<Object> _target;
     ptr<Object> _currentTarget;
-    ptr<UniStr> _type;
     StopType    _stop;
     bool        _isDefaultPrevented;
     bool        _cancelable;

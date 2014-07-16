@@ -22,25 +22,33 @@ template <
     typename _U,
     typename _Entry, 
     _Entry _U::*__field,
-    ListType __type = _Entry::type>
-struct list {
-    static_assert(__type < ListType::unknown, "unknown list type.");
-};
+    ListType __type,
+    bool>
+struct bsdlist;
+
+#define GV_FRIEND_LIST() \
+template <               \
+    typename,            \
+    typename _Ux,        \
+    typename _Entryx,    \
+    _Entryx _Ux::*,      \
+    GV_NS::ListType,     \
+    bool>                \
+friend struct GV_NS::bsdlist
 
 /* list */
 struct list_entry {
-    static constexpr ListType type = ListType::list;
+    static constexpr ListType list_type = ListType::list;
     void *_next;
     void **_prev;
 };
 
 template <typename _T, typename _U, typename _Entry, _Entry _U::*__field>
-struct list <_T, _U, _Entry, __field, ListType::list> {
+struct bsdlist <_T, _U, _Entry, __field, ListType::list, false> {
 public:
     static_assert(std::is_same<_U, _T>::value || std::is_base_of<_U, _T>::value,
                   "list _T must same with _U or derived from _U");
     typedef _T          type;
-    typedef type&       reference;
     typedef type*       pointer;
     typedef _Entry      entry_type;
 
@@ -56,8 +64,8 @@ public:
             return *this;
         }
 
-        reference operator*() noexcept {
-            return *__GV_LIST_VALUE__(_ptr);
+        pointer operator*() noexcept {
+            return __GV_LIST_VALUE__(_ptr);
         }
 
         pointer operator->() noexcept {
@@ -85,9 +93,9 @@ public:
     };
     typedef const iterator const_iterator;
 public:
-    list() noexcept : _first(nullptr) {}
-    list(const list &x) = delete;
-    list(list &&x) noexcept : _first() {
+    bsdlist() noexcept : _first(nullptr) {}
+    bsdlist(const bsdlist &x) = delete;
+    bsdlist(bsdlist &&x) noexcept : _first() {
         swap(x);
     }
 
@@ -95,7 +103,7 @@ public:
         _first = nullptr;
     }
 
-    void swap(list &x) {
+    void swap(bsdlist &x) {
         std::swap(_first, x._first);
         if (_first) {
             __GV_LIST_ENTRY__(_first)._prev = reinterpret_cast<void**>(&_first);
@@ -105,9 +113,9 @@ public:
         }
     }
 
-    list &operator=(const list &x) = delete;
+    bsdlist &operator=(const bsdlist &x) = delete;
 
-    list &operator=(list &&x) noexcept {
+    bsdlist &operator=(bsdlist &&x) noexcept {
         swap(x);
         return *this;
     }
@@ -209,7 +217,7 @@ private:
 
 /* clist */
 struct clist_entry {
-    static constexpr ListType type = ListType::clist;
+    static constexpr ListType list_type = ListType::clist;
 
     clist_entry *_next;
     clist_entry *_prev;
@@ -236,13 +244,12 @@ struct clist_entry {
 
 #define __CLIST_OBJECT__(entry) static_cast<pointer>(containerof_member(entry, __field))
 template <typename _T, typename _U, typename _Entry, _Entry _U::*__field>
-struct list <_T, _U, _Entry, __field, ListType::clist>: protected clist_entry {
+struct bsdlist <_T, _U, _Entry, __field, ListType::clist, false>: protected clist_entry {
 public:
     static_assert(std::is_same<_U, _T>::value || std::is_base_of<_U, _T>::value,
                   "list _T must same with _U or derived from _U");
 
     typedef _T          type;
-    typedef type&       reference;
     typedef type*       pointer;
     typedef _Entry      entry_type;
 
@@ -258,8 +265,8 @@ public:
             return *this;
         }
 
-        reference operator*() noexcept {
-            return *__GV_LIST_VALUE__(__CLIST_OBJECT__(_entry));
+        pointer operator*() noexcept {
+            return __GV_LIST_VALUE__(__CLIST_OBJECT__(_entry));
         }
 
         pointer operator->() noexcept {
@@ -310,8 +317,8 @@ public:
             return *this;
         }
 
-        reference operator*() noexcept {
-            return *__GV_LIST_VALUE__(__CLIST_OBJECT__(_entry));
+        pointer operator*() noexcept {
+            return __GV_LIST_VALUE__(__CLIST_OBJECT__(_entry));
         }
 
         pointer operator->() noexcept {
@@ -353,11 +360,11 @@ public:
     typedef const reverse_iterator const_reverse_iterator;
 
 public:
-    list() noexcept {
+    bsdlist() noexcept {
         init();
     }
-    list(const list &x) = delete;
-    list(list &&x) noexcept {
+    bsdlist(const bsdlist &x) = delete;
+    bsdlist(bsdlist &&x) noexcept {
         if (x.empty()){
             init();
         }
@@ -370,8 +377,8 @@ public:
         }
     }
 
-    list &operator=(const list &x) = delete;
-    list &operator=(list &&x) noexcept {
+    bsdlist &operator=(const bsdlist &x) = delete;
+    bsdlist &operator=(bsdlist &&x) noexcept {
         swap(x);
         return *this;
     }
@@ -381,14 +388,14 @@ public:
         _prev = this;
     }
 
-    void swap(list &x) noexcept {
+    void swap(bsdlist &x) noexcept {
         std::swap(_next, x._next);
         std::swap(_prev, x._prev);
 
         _next->_prev = this;
         _prev->_next = this;
-        x._next->_prev = std::addressof<list>(x);
-        x._prev->_next = std::addressof<list>(x);
+        x._next->_prev = std::addressof<bsdlist>(x);
+        x._prev->_next = std::addressof<bsdlist>(x);
     }
 
     static pointer insert_back(type *listelm, type *elm) noexcept {
@@ -528,19 +535,18 @@ public:
 
 /* slist_entry */
 struct slist_entry {
-    static constexpr ListType type = ListType::slist;
+    static constexpr ListType list_type = ListType::slist;
 
     void *_next;
 };
 
 template <typename _T, typename _U, typename _Entry, _Entry _U::*__field>
-struct list <_T, _U, _Entry, __field, ListType::slist> {
+struct bsdlist <_T, _U, _Entry, __field, ListType::slist, false> {
 public:
     static_assert(std::is_same<_U, _T>::value || std::is_base_of<_U, _T>::value,
                   "list _T must same with _U or derived from _U");
 
     typedef _T          type;
-    typedef type&       reference;
     typedef type*       pointer;
     typedef _Entry      entry_type;
 
@@ -556,8 +562,8 @@ public:
             return *this;
         }
 
-        reference operator*() noexcept {
-            return *__GV_LIST_VALUE__(_ptr);
+        pointer operator*() noexcept {
+            return __GV_LIST_VALUE__(_ptr);
         }
 
         pointer operator->() noexcept {
@@ -585,15 +591,15 @@ public:
     };
     typedef const iterator const_iterator;
 public:
-    list() noexcept : _first() {}
-    list(const list &x) noexcept = delete;
-    list(list &&x) noexcept : _first() {
+    bsdlist() noexcept : _first() {}
+    bsdlist(const bsdlist &x) noexcept = delete;
+    bsdlist(bsdlist &&x) noexcept : _first() {
         swap(x);
     }
 
-    list &operator=(const list &x) = delete;
+    bsdlist &operator=(const bsdlist &x) = delete;
 
-    list &operator=(list &&x) noexcept {
+    bsdlist &operator=(bsdlist &&x) noexcept {
         std::swap(x);
         return *this;
     }
@@ -602,7 +608,7 @@ public:
         _first = nullptr;
     }
 
-    void swap(list &x) {
+    void swap(bsdlist &x) {
         std::swap(_first, x._first);
     }
 
@@ -712,19 +718,18 @@ private:
 
 /* stlist */
 struct stlist_entry {
-    static constexpr ListType type = ListType::stlist;
+    static constexpr ListType list_type = ListType::stlist;
 
     void *_next;
 };
 
 template <typename _T, typename _U, typename _Entry, _Entry _U::*__field>
-struct list <_T, _U, _Entry, __field, ListType::stlist> {
+struct bsdlist <_T, _U, _Entry, __field, ListType::stlist, false> {
 public:
     static_assert(std::is_same<_U, _T>::value || std::is_base_of<_U, _T>::value,
                   "list _T must same with _U or derived from _U");
 
     typedef _T          type;
-    typedef type&       reference;
     typedef type*       pointer;
     typedef _Entry      entry_type;
 
@@ -740,8 +745,8 @@ public:
             return *this;
         }
 
-        reference operator*() noexcept {
-            return *__GV_LIST_VALUE__(_ptr);
+        pointer operator*() noexcept {
+            return __GV_LIST_VALUE__(_ptr);
         }
 
         pointer operator->() noexcept {
@@ -769,18 +774,18 @@ public:
     };
     typedef const iterator const_iterator;
 public:
-    list() noexcept : _first(), _last(&_first) {}
-    list(const list &) = delete;
-    list(list &&x) noexcept : _first(), _last(&_first) {
+    bsdlist() noexcept : _first(), _last(&_first) {}
+    bsdlist(const bsdlist &) = delete;
+    bsdlist(bsdlist &&x) noexcept : _first(), _last(&_first) {
         swap(x);
     }
-    list &operator=(const list &) = delete;
+    bsdlist &operator=(const bsdlist &) = delete;
 
-    list &operator=(list &&x) noexcept {
+    bsdlist &operator=(bsdlist &&x) noexcept {
         swap(x);
         return *this;
     }
-    void swap(list &x) noexcept {
+    void swap(bsdlist &x) noexcept {
         std::swap(_first, x._first);
         std::swap(_last, x._last);
         if (!_first) {
@@ -921,15 +926,5 @@ private:
 };
 
 GV_NS_END
-
-#define GV_FRIEND_LIST()                                   \
-template <                                                 \
-    typename _Tx,                                          \
-    typename _U,                                           \
-    typename _Entry,                                       \
-    _Entry _U::*,                                          \
-    GV_NS::ListType>                                       \
-friend struct GV_NS::list
-
 
 #endif

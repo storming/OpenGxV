@@ -286,13 +286,16 @@ private:
     type *_ptr;
 };
 
-template <typename _T, typename _U, typename _Entry, _Entry _T::*__field>
-class list<ptr<_T>, _U, _Entry, __field, ListType::list> : private list<_T, _U, _Entry, __field> {
+template <typename _T, typename _U, typename _Entry, _Entry _U::*__field>
+struct bsdlist<_T, _U, _Entry, __field, ListType::list, true> : private bsdlist<typename is_ptr<_T>::type, _U, _Entry, __field, ListType::list, false> {
 public:
-    typedef list<_T, _U, _Entry, __field>   base;
-    typedef typename base::type             type;
-    typedef ptr<type>                       pointer;
-    typedef const pointer                   const_pointer;
+    typedef bsdlist<
+        typename is_ptr<_T>::type, 
+        _U, _Entry, __field, 
+        ListType::clist, false>     base;
+    typedef typename base::type     type;
+    typedef _T                      pointer;
+    typedef const pointer           const_pointer;
 
     using base::swap;
     using base::operator=;
@@ -306,11 +309,11 @@ public:
     using base::cbegin;
     using base::cend;
 
-    list() noexcept : base() {}
-    list(const list&) = delete;
-    list(list &&x) noexcept : base(std::move(x)) {}
+    bsdlist() noexcept : base() {}
+    bsdlist(const bsdlist&) = delete;
+    bsdlist(bsdlist &&x) noexcept : base(std::move(x)) {}
 
-    ~list() noexcept {
+    ~bsdlist() noexcept {
         clear();
     }
 
@@ -351,13 +354,16 @@ public:
     }
 };
 
-template <typename _T, typename _U, typename _Entry, _Entry _T::*__field>
-class list<ptr<_T>, _U, _Entry, __field, ListType::clist> : private list<_T, _U, _Entry, __field> {
+template <typename _T, typename _U, typename _Entry, _Entry _U::*__field>
+struct bsdlist<_T, _U, _Entry, __field, ListType::clist, true> : private bsdlist<typename is_ptr<_T>::type, _U, _Entry, __field, ListType::clist, false> {
 public:
-    typedef list<_T, _U, _Entry, __field>   base;
-    typedef typename base::type             type;
-    typedef ptr<type>                       pointer;
-    typedef const pointer                   const_pointer;
+    typedef bsdlist<
+        typename is_ptr<_T>::type, 
+        _U, _Entry, __field, 
+        ListType::clist, false>     base;
+    typedef typename base::type     type;
+    typedef _T                      pointer;
+    typedef const pointer           const_pointer;
 
     using base::swap;
     using base::operator=;
@@ -379,11 +385,11 @@ public:
     using base::crbegin;
     using base::crend;
 
-    list() noexcept : base() {}
-    list(const list&) = delete;
-    list(list &&x) noexcept : base(std::move(x)) {}
+    bsdlist() noexcept : base() {}
+    bsdlist(const bsdlist&) = delete;
+    bsdlist(bsdlist &&x) noexcept : base(std::move(x)) {}
 
-    ~list() noexcept {
+    ~bsdlist() noexcept {
         clear();
     }
 
@@ -436,13 +442,16 @@ public:
     }
 };
 
-template <typename _T, typename _U, typename _Entry, _Entry _T::*__field>
-class list<ptr<_T>, _U, _Entry, __field, ListType::slist> : private list<_T, _U, _Entry, __field> {
+template <typename _T, typename _U, typename _Entry, _Entry _U::*__field>
+struct bsdlist<_T, _U, _Entry, __field, ListType::slist, true> : private bsdlist<typename is_ptr<_T>::type, _U, _Entry, __field, ListType::slist, false> {
 public:
-    typedef list<_T, _U, _Entry, __field>   base;
-    typedef typename base::type             type;
-    typedef ptr<type>                       pointer;
-    typedef const pointer                   const_pointer;
+    typedef bsdlist<
+        typename is_ptr<_T>::type, 
+        _U, _Entry, __field, 
+        ListType::clist, false>     base;
+    typedef typename base::type     type;
+    typedef _T                      pointer;
+    typedef const pointer           const_pointer;
 
     using base::swap;
     using base::operator=;
@@ -456,11 +465,11 @@ public:
     using base::cbegin;
     using base::cend;
 
-    list() noexcept : base() {}
-    list(const list&) = delete;
-    list(list &&x) noexcept : base(std::move(x)) {}
+    bsdlist() noexcept : base() {}
+    bsdlist(const bsdlist&) = delete;
+    bsdlist(bsdlist &&x) noexcept : base(std::move(x)) {}
 
-    ~list() noexcept {
+    ~bsdlist() noexcept {
         clear();
     }
 
@@ -501,13 +510,16 @@ public:
     }
 };
 
-template <typename _T, typename _U, typename _Entry, _Entry _T::*__field>
-class list<ptr<_T>, _U, _Entry, __field, ListType::stlist> : private list<_T, _U, _Entry, __field> {
+template <typename _T, typename _U, typename _Entry, _Entry _U::*__field>
+struct bsdlist<_T, _U, _Entry, __field, ListType::stlist, true> : private bsdlist<typename is_ptr<_T>::type, _U, _Entry, __field, ListType::stlist, false> {
 public:
-    typedef list<_T, _U, _Entry, __field>   base;
-    typedef typename base::type             type;
-    typedef ptr<type>                       pointer;
-    typedef const pointer                   const_pointer;
+    typedef bsdlist<
+        typename is_ptr<_T>::type, 
+        _U, _Entry, __field, 
+        ListType::clist, false>     base;
+    typedef typename base::type     type;
+    typedef _T                      pointer;
+    typedef const pointer           const_pointer;
 
     using base::swap;
     using base::operator=;
@@ -521,11 +533,11 @@ public:
     using base::cbegin;
     using base::cend;
 
-    list() noexcept : base() {}
-    list(const list&) = delete;
-    list(list &&x) noexcept : base(std::move(x)) {}
+    bsdlist() noexcept : base() {}
+    bsdlist(const bsdlist&) = delete;
+    bsdlist(bsdlist &&x) noexcept : base(std::move(x)) {}
 
-    ~list() noexcept {
+    ~bsdlist() noexcept {
         clear();
     }
 
@@ -574,20 +586,19 @@ public:
 
 GV_NS_END
 
-#define GV_FRIEND_PTR()                             \
-    template <typename> friend class GV_NS::object; \
-    template <typename> friend class GV_NS::ptr;
-
-#define gv_list(_T, entry, ...) GV_NS::list<        \
-    _T,                                             \
-    typename GV_NS::member_of<                      \
-        decltype(&GV_NS::is_ptr<_T>::type::entry)   \
-    >::class_type,                                  \
-    typename GV_NS::member_of<                      \
-        decltype(&GV_NS::is_ptr<_T>::type::entry)   \
-    >::type,                                        \
-    &GV_NS::is_ptr<_T>::type::entry,                \
-    ##__VA_ARGS__>
+#define gv_list(_T, entry) GV_NS::bsdlist<        \
+    _T,                                           \
+    typename GV_NS::member_of<                    \
+        decltype(&GV_NS::is_ptr<_T>::type::entry) \
+    >::class_type,                                \
+    typename GV_NS::member_of<                    \
+        decltype(&GV_NS::is_ptr<_T>::type::entry) \
+    >::type,                                      \
+    &GV_NS::is_ptr<_T>::type::entry,              \
+    GV_NS::member_of<                             \
+        decltype(&GV_NS::is_ptr<_T>::type::entry) \
+    >::type::list_type,                           \
+    GV_NS::is_ptr<_T>::value>
 
 #endif
 

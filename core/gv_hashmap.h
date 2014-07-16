@@ -28,18 +28,21 @@ template <
     typename _Compare = equal<_Key, _T>>
 class hashmap {
 public:
-    typedef _T                                      type;
-    typedef _Key                                    key_type;
-    typedef _Entry                                  entry_type;
-    typedef _Hash                                   hash_type;
-    typedef _Compare                                compare_type;
-    typedef list<_T, 
+    typedef _T                              type;
+    typedef _Key                            key_type;
+    typedef _Entry                          entry_type;
+    typedef _Hash                           hash_type;
+    typedef _Compare                        compare_type;
+    typedef bsdlist<_T, 
         typename member_of<
             decltype(__field)
         >::class_type,
-        entry_type, __field>                        list_type;
-    typedef typename list_type::pointer             pointer;
-    typedef typename list_type::iterator            iterator;
+        entry_type, 
+        __field, 
+        entry_type::list_type,
+        is_ptr<_T>::value>                  list_type;
+    typedef typename list_type::pointer     pointer;
+    typedef typename list_type::iterator    iterator;
 private:
     static entry_type &get_entry(type *elm) noexcept {
         return elm->*__field;

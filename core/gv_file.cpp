@@ -23,8 +23,6 @@ File::~File() noexcept {
 ptr<File> File::load(const ptr<Path> &path) noexcept {
     object<File> file(path);
 
-    unsigned char *buffer = nullptr;
-
     size_t size = 0;
 
     WCHAR wszBuf[4096] = { 0 };

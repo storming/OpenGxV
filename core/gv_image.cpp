@@ -30,6 +30,8 @@ ptr<Image> Image::load(const ptr<Path> &path, FileType type) noexcept {
     case FileType::PNG:
         image = PngCodec::load(file);
         break;
+    default:
+        return nullptr;
     }
     return image;
 }

@@ -99,6 +99,8 @@ struct PixelInfoI8 : PixelInfo {
                 }
             } while (0);
             break;
+        default:
+            return nullptr;
         }
         return dst;
     }
@@ -192,6 +194,8 @@ struct PixelInfoAI88 : PixelInfo {
                 }
             } while (0);
             break;
+        default:
+            return nullptr;
         }
         return dst;
     }
@@ -212,7 +216,8 @@ struct PixelInfoRGB888 : PixelInfo {
                 dst = object<Chunk>(size);
                 unsigned char *d = dst->data();
                 while (s < end) {
-                    *d++ = (*s++ * 299 + *s++ * 587 + *s++ * 114 + 500) / 1000;
+                    *d++ = (s[0] * 299 + s[1] * 587 + s[2] * 114 + 500) / 1000;
+                    s += 3;
                 }
             } while (0);
             break;
@@ -221,7 +226,8 @@ struct PixelInfoRGB888 : PixelInfo {
                 dst = object<Chunk>(size * 2);
                 unsigned short *d = (unsigned short*)dst->data();
                 while (s < end) {
-                    *d++ = 0xff00 | ((*s++ * 299 + *s++ * 587 + *s++ * 114 + 500) / 1000);
+                    *d++ = 0xff00 | ((s[0] * 299 + s[1] * 587 + s[2] * 114 + 500) / 1000);
+                    s += 3;
                 }
             } while (0);
             break;
@@ -242,7 +248,8 @@ struct PixelInfoRGB888 : PixelInfo {
                 dst = object<Chunk>(size * 2);
                 unsigned short *d = (unsigned short*)dst->data();
                 while (s < end) {
-                    *d++ = ((*s++ & 0xf8) << 8) | ((*s++ & 0xfc) << 3) | ((*s++ & 0xf8) >> 3);
+                    *d++ = ((s[0] & 0xf8) << 8) | ((s[1] & 0xfc) << 3) | ((s[2] & 0xf8) >> 3);
+                    s += 3;
                 }
             } while (0);
             break;
@@ -251,7 +258,8 @@ struct PixelInfoRGB888 : PixelInfo {
                 dst = object<Chunk>(size * 2);
                 unsigned short *d = (unsigned short*)dst->data();
                 while (s < end) {
-                    *d++ = ((*s++ & 0xf0) << 8) | ((*s++ & 0xf0) << 4) | (*s++ & 0xf0) | 0xf;
+                    *d++ = ((s[0] & 0xf0) << 8) | ((s[1] & 0xf0) << 4) | (s[2] & 0xf0) | 0xf;
+                    s += 3;
                 }
             } while (0);
             break;
@@ -260,10 +268,13 @@ struct PixelInfoRGB888 : PixelInfo {
                 dst = object<Chunk>(size * 2);
                 unsigned short *d = (unsigned short*)dst->data();
                 while (s < end) {
-                    *d++ = ((*s++ & 0xf8) << 8) | ((*s++ & 0xf8) << 3) | ((*s++ & 0xf8) >> 2) | 1;
+                    *d++ = ((s[0] & 0xf8) << 8) | ((s[1] & 0xf8) << 3) | ((s[2] & 0xf8) >> 2) | 1;
+                    s += 3;
                 }
             } while (0);
             break;
+        default:
+            return nullptr;
         }
         return dst;
     }
@@ -295,8 +306,8 @@ struct PixelInfoRGBA8888 : PixelInfo {
                 dst = object<Chunk>(size);
                 unsigned char *d = dst->data();
                 while (s < end) {
-                    *d++ = (*s++ * 299 + *s++ * 587 + *s * 114 + 500) / 1000;
-                    s += 2;
+                    *d++ = (s[0] * 299 + s[1] * 587 + s[2] * 114 + 500) / 1000;
+                    s += 4;
                 }
             } while (0);
             break;
@@ -305,8 +316,9 @@ struct PixelInfoRGBA8888 : PixelInfo {
                 dst = object<Chunk>(size * 2);
                 unsigned short *d = (unsigned short*)dst->data();
                 while (s < end) {
-                    *d++ = ((*s++ * 299 + *s++ * 587 + *s++ * 114 + 500) / 1000);
-                    *d++ = *s++;
+                    *d++ = ((s[0] * 299 + s[1] * 587 + s[2] * 114 + 500) / 1000);
+                    *d++ = s[4];
+                    s += 4;
                 }
             } while (0);
             break;
@@ -327,8 +339,8 @@ struct PixelInfoRGBA8888 : PixelInfo {
                 dst = object<Chunk>(size * 2);
                 unsigned short *d = (unsigned short*)dst->data();
                 while (s < end) {
-                    *d++ = ((*s++ & 0xf8) << 8) | ((*s++ & 0xfc) << 3) | ((*s & 0xf8) >> 3);
-                    s += 2;
+                    *d++ = ((s[1] & 0xf8) << 8) | ((s[2] & 0xfc) << 3) | ((s[3] & 0xf8) >> 3);
+                    s += 4;
                 }
             } while (0);
             break;
@@ -337,7 +349,8 @@ struct PixelInfoRGBA8888 : PixelInfo {
                 dst = object<Chunk>(size * 2);
                 unsigned short *d = (unsigned short*)dst->data();
                 while (s < end) {
-                    *d++ = ((*s++ & 0xf0) << 8) | ((*s++ & 0xf0) << 4) | (*s++ & 0xf0) | ((*s++ & 0xf0) >> 4);
+                    *d++ = ((s[0] & 0xf0) << 8) | ((s[1] & 0xf0) << 4) | (s[2] & 0xf0) | ((s[3] & 0xf0) >> 4);
+                    s += 4;
                 }
             } while (0);
             break;
@@ -346,10 +359,13 @@ struct PixelInfoRGBA8888 : PixelInfo {
                 dst = object<Chunk>(size * 2);
                 unsigned short *d = (unsigned short*)dst->data();
                 while (s < end) {
-                    *d++ = ((*s++ & 0xf8) << 8) | ((*s++ & 0xf8) << 3) | ((*s++ & 0xf8) >> 2) | ((*s++ & 0x80) >> 7);
+                    *d++ = ((s[0] & 0xf8) << 8) | ((s[1] & 0xf8) << 3) | ((s[2] & 0xf8) >> 2) | ((s[3] & 0x80) >> 7);
+                    s += 4;
                 }
             } while (0);
             break;
+        default:
+            return nullptr;
         }
         return dst;
     }

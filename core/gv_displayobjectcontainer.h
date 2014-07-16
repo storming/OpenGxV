@@ -8,39 +8,35 @@ GV_NS_BEGIN
 class DisplayObjectContainer : public DisplayObject {
     friend class Object;
     friend class DisplayObject;
-private:
-    typedef gv_list(ptr<DisplayObject>, _entry) container_base;
-
 public:
-    class ContainerType : protected container_base {
+    typedef gv_list(ptr<DisplayObject>, _entry) ContainerBase;
+    class Container : private ContainerBase {
         friend class DisplayObjectContainer;
     public:
-        using container_base::swap;
-        using container_base::operator=;
-        using container_base::first;
-        using container_base::front;
-        using container_base::last;
-        using container_base::back;
-        using container_base::next;
-        using container_base::prev;
-        using container_base::empty;
-        using container_base::iterator;
-        using container_base::reverse_iterator;
-        using container_base::begin;
-        using container_base::end;
-        using container_base::rbegin;
-        using container_base::rend;
-        using container_base::cbegin;
-        using container_base::cend;
-        using container_base::crbegin;
-        using container_base::crend;
+        using ContainerBase::first;
+        using ContainerBase::front;
+        using ContainerBase::last;
+        using ContainerBase::back;
+        using ContainerBase::next;
+        using ContainerBase::prev;
+        using ContainerBase::empty;
+        using ContainerBase::iterator;
+        using ContainerBase::reverse_iterator;
+        using ContainerBase::begin;
+        using ContainerBase::end;
+        using ContainerBase::rbegin;
+        using ContainerBase::rend;
+        using ContainerBase::cbegin;
+        using ContainerBase::cend;
+        using ContainerBase::crbegin;
+        using ContainerBase::crend;
+
         unsigned size() const noexcept {
             return _size;
         }
+        Container& operator=(const Container&) = delete;
     protected:
-        ContainerType() noexcept : container_base() {}
-        ContainerType(const ContainerType&) = delete;
-        ContainerType(ContainerType &&x) noexcept : container_base(std::move(x)) {}
+        Container() noexcept : _size() {}
     private:
         unsigned _size;
     };
@@ -76,7 +72,7 @@ private:
 
 private:
     Box2f _childrenBounds;
-    ContainerType _list;
+    Container _container;
 };
 
 GV_NS_END

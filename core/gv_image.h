@@ -1,6 +1,8 @@
 #ifndef __GV_IMAGE_H__
 #define __GV_IMAGE_H__
 
+#include <vector>
+
 #include "gv_object.h"
 #include "gv_path.h"
 #include "gv_file.h"
