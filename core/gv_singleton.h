@@ -59,7 +59,5 @@ _Tx *singleton<_Tx, _Deps...>::construct_object() {
 
 GV_NS_END
 
-#define GV_FRIEND_SINGLETON() template <typename, typename...> friend class GV_NS::singleton
-
 #endif
 

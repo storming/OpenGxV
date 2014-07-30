@@ -13,7 +13,6 @@ class Object {
     template <typename> friend class ptr;
     template <typename, typename...> friend class singleton;
     GV_FRIEND_LIST();
-    GV_RESTRAIN_NEW();
 protected:
     Object() noexcept : _ref(1) {
         if (--_constructRef < 0) {
@@ -209,7 +208,6 @@ public:
 
     template <typename ..._Args>
     object(_Args&&...args) noexcept {
-        ++Object::_constructRef;
         base::_ptr = Object::constructObject<type>(std::forward<_Args>(args)...);
     }
 };

@@ -7,7 +7,10 @@
 
 GV_NS_BEGIN
 
-class Graphics : private std::vector<ptr<Primitive>> {
+class GraphicsData : public Object {
+};
+
+class Graphics : public Object {
 public:
     void clear() noexcept;
     void drawPrimitive(const ptr<Primitive> &primitive) noexcept;

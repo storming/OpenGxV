@@ -109,6 +109,7 @@ public:
             _capacity = ((_capacity + 1) << 1) - 1;
         }
         _map = (type**)mem_alloc(sizeof(type*) * (_capacity + 1));
+        memset(_map, 0, sizeof(type*) * (_capacity + 1));
         list_type list;
         list = std::move(_list);
         pointer elm;

@@ -34,10 +34,10 @@ public:
 private:
     Log();
 
-    Chunk _chunk;
-    size_t _pos;
-    LogLevel _level;
-};
+    object<Chunk> _chunk;
+    size_t        _pos;
+    LogLevel      _level;
+}; 
 
 GV_NS_END
 

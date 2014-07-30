@@ -19,9 +19,10 @@ public:
     Event(const ptr<UniStr> &type, bool bubbles = false, bool cancelable = false) noexcept;
     Event(const char *type, bool bubbles = false, bool cancelable = false) noexcept;
     Event(const std::string &type, bool bubbles = false, bool cancelable = false) noexcept;
-    
+    Event(const Event &x) noexcept;
+
     virtual ptr<Event> clone() {
-        return object<Event>(_type, _bubbles, _cancelable);
+        return object<Event>(*this);
     }
 
     ptr<Object> target() const noexcept {
@@ -169,6 +170,10 @@ public:
     GV_STATIC_UNISTR(CHANGE);
     
     GV_STATIC_UNISTR(REMOVED);
+    GV_STATIC_UNISTR(REMOVED_FROM_STAGE);
+    GV_STATIC_UNISTR(MOVE);
+    GV_STATIC_UNISTR(RESIZE);
+
 }; 
 
 GV_NS_END

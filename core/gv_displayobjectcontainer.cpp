@@ -1,9 +1,10 @@
 #include "opengxv.h"
 #include "gv_displayobjectcontainer.h"
+#include "gv_stage.h"
 
 GV_NS_BEGIN
 
-DisplayObjectContainer::DisplayObjectContainer() noexcept : DisplayObject(true)
+DisplayObjectContainer::DisplayObjectContainer() noexcept : InteractiveObject(true)
 { }
 
 DisplayObject *DisplayObjectContainer::addChild(const ptr<DisplayObject> &child, DisplayObject *before) {
@@ -27,7 +28,7 @@ DisplayObject *DisplayObjectContainer::addChild(const ptr<DisplayObject> &child,
     }
 
     child->_parent = this;
-    child->_transformDirty = true;
+    child->_matrixDirty = true;
     ++_container._size;
 
     if (before) {
@@ -40,8 +41,10 @@ DisplayObject *DisplayObjectContainer::addChild(const ptr<DisplayObject> &child,
     if (!child->_bounds.empty()) {
         updateChildBounds(child, Box2f(), child->_bounds); 
     }
-
     child->dispatchEvent(object<Event>(Event::ADDED, true)); 
+    if (_stage) {
+        child->stage(_stage);
+    }
     return child;
 }
 
@@ -65,7 +68,10 @@ ptr<DisplayObject> DisplayObjectContainer::removeChild(const ptr<DisplayObject> 
     }
 
     child->dispatchEvent(this, object<Event>(Event::REMOVED, true));
-    return child;
+    if (_stage) {
+        child->stage(nullptr);
+    }
+    return child; 
 }
 
 ptr<DisplayObject> DisplayObjectContainer::removeChild(const ptr<DisplayObject> &child) {
@@ -230,6 +236,38 @@ void DisplayObjectContainer::updateChildBounds(DisplayObject *which, const Box2f
     if (bounds != _childrenBounds) {
         _childrenBounds = bounds;
         updateBounds();
+    }
+}
+
+void DisplayObjectContainer::stage(Stage *stage) {
+    DisplayObject::stage(stage);
+    for (auto child : _container) {
+        child->stage(stage);
+    }
+}
+
+void DisplayObjectContainer::render(Renderer &renderer, const Matrix &mat, int dirty) noexcept {
+    if (!_visible) {
+        return;
+    }
+    dirty |= (int)_matrixDirty; 
+    if (dirty) {
+        *_concatenatedMatrix = mat * (*_matrix);
+        _matrixDirty = false;
+    }
+    if (!_stage->checkVisibility((*_concatenatedMatrix) * _bounds)) {
+        return;
+    }
+
+    draw(renderer, *_concatenatedMatrix);
+
+    for (ptr<DisplayObject> child : _container) {
+        if (child->_iscontainer) {
+            static_cast<DisplayObjectContainer*>(child.get())->render(renderer, *_concatenatedMatrix, dirty);
+        }
+        else {
+            child->render(renderer, *_concatenatedMatrix, dirty);
+        }
     }
 }
 

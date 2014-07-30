@@ -10,6 +10,14 @@ struct Primitive : public Object {
     virtual Box2f bounds() = 0;
 };
 
+class PrimitiveLines : public Primitive {
+public:
+    void moveTo(float x, float y);
+    void lineTo(float x, float y);
+private:
+    Vec3f _pos;
+};
+
 GV_NS_END
 
 #endif

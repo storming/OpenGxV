@@ -6,6 +6,7 @@
 #include "gv_graphics.h"
 #include "gv_log.h"
 #include "gv_eventdispatcher.h"
+#include "gv_renderer.h"
 
 GV_NS_BEGIN
 
@@ -15,6 +16,7 @@ class Stage;
 class DisplayObject : public EventDispatcher {
     friend class Object;
     friend class DisplayObjectContainer;
+    friend class InteractiveObject;
     friend class Stage;
     GV_FRIEND_LIST();
 public:
@@ -37,7 +39,7 @@ public:
     virtual void y(float value);
 
     virtual float z() const;
-    void z(float value);
+    virtual void z(float value);
 
     virtual Vec3f rotation() const;
     virtual void rotation(const Vec3f &value);
@@ -90,23 +92,23 @@ public:
         return _stage;
     }
 
-    Transform &transform() noexcept {
-        return *_transform;
+    Matrix &matrix() noexcept {
+        return *_matrix;
     }
 
-    void transform(const Transform &mat) noexcept {
-        const Transform *m = std::addressof<const Transform>(mat);
+    void matrix(const Matrix &mat) noexcept {
+        const Matrix *m = std::addressof<const Matrix>(mat);
         if (!m){
             return;
         }
-        if (m != _transform){
-            *_transform = mat;
+        if (m != _matrix){
+            *_matrix = mat;
         }
-        _transformDirty = true;
+        _matrixDirty = true;
         updateBounds();
     }
 
-    const Transform &concatenatedTransform() noexcept;
+    const Matrix &concatenatedMatrix() noexcept;
     virtual Box2f bounds(DisplayObject *targetCoordinateSpace);
     virtual bool dispatchEvent(ptr<Event> event) override;
 
@@ -114,23 +116,26 @@ protected:
     DisplayObject() noexcept : DisplayObject(false) { }
     virtual Box2f contentBounds() = 0;
     virtual void updateBounds();
+    virtual void draw(Renderer &renderer, const Matrix &mat) = 0;
 
 private:
     DisplayObject(bool iscontainer) noexcept;
     void updateBounds(const Box2f &bounds) noexcept;
     bool dispatchEvent(DisplayObject *parent, ptr<Event> event) noexcept;
+    virtual void stage(Stage *stage);
+    void render(Renderer &renderer, const Matrix &mat, int dirty) noexcept;
 
 private:
     clist_entry             _entry;
     DisplayObjectContainer *_parent;
     Stage                  *_stage;
     ptr<UniStr>             _name;
-    owned_ptr<Transform>    _transform;
-    owned_ptr<Transform>    _concatenatedTransform;
+    owned_ptr<Matrix>       _matrix;
+    owned_ptr<Matrix>       _concatenatedMatrix;
     Box2f                   _bounds;
     bool                    _iscontainer;
     bool                    _visible;
-    bool                    _transformDirty;
+    bool                    _matrixDirty;
 }; 
 
 GV_NS_END

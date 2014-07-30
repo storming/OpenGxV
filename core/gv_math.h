@@ -7,8 +7,9 @@
 
 GV_NS_BEGIN
 
-typedef Eigen::Vector2f         Vec2f;
-typedef Eigen::Vector3f         Vec3f;
+typedef Eigen::Vector2f     Vec2f;
+typedef Eigen::Vector3f     Vec3f;
+typedef Eigen::Affine3f     Matrix;
 using Eigen::Matrix4f;
 using Eigen::Matrix3f;
 using Eigen::Affine3f;
@@ -57,17 +58,37 @@ struct Box2f final {
     float x() const noexcept {
         return min.x();
     }
+    void x(float value) noexcept {
+        float d = value - min.x();
+        min.x() += d;
+        max.x() += d;
+    }
     float y() const noexcept {
         return min.y();
+    }
+    void y(float value) noexcept {
+        float d = value - min.y();
+        min.y() += d;
+        max.y() += d;
     }
     Size2f size() const noexcept {
         return Size2f(max.x() - min.x(), max.y() - min.y());
     }
+    void size(const Size2f &value) noexcept {
+        max.x() = min.x() + value.width;
+        max.y() = min.y() + value.height;
+    }
     float width() const noexcept {
         return max.x() - min.x();
     }
+    void width(float value) noexcept {
+        max.x() = min.x() + value;
+    }
     float height() const noexcept {
         return max.y() - min.y();
+    }
+    void height(float value) noexcept {
+        max.y() = min.y() + value;
     }
     Vec2f center() const noexcept {
         return (min + max) / 2;
@@ -158,22 +179,7 @@ struct Box2f final {
     }
 };
 
-struct Transform : Affine3f {
-    using Affine3f::operator*;
-    using Affine3f::operator=;
-    using Affine3f::linear;
-
-    void linear(Matrix3f *rot, Matrix3f *scale) const noexcept {
-        computeRotationScaling(rot, scale);
-    }
-    void linear(Vec3f *rot, Matrix3f *scale) const noexcept {
-        Matrix3f m;
-        linear(&m, scale);
-        *rot = m.eulerAngles(0, 1, 2);
-    }
-};
-
-inline Box2f operator*(const Affine3f &lhs, const Box2f &rhs) noexcept {
+inline Box2f operator*(const Matrix &lhs, const Box2f &rhs) noexcept {
     Vec3f min(rhs.min.x(), rhs.min.y(), 0.0f);
     Vec3f max(rhs.max.x(), rhs.max.y(), 0.0f);
     min = lhs * min;
@@ -182,6 +188,18 @@ inline Box2f operator*(const Affine3f &lhs, const Box2f &rhs) noexcept {
 }
 
 GV_MATH_BEGIN
+
+void ortho(float left, float right, float top, float bottom, float n, float f, Matrix &mat) noexcept;
+
+inline void matrixLinear(Matrix *mat, Matrix3f *rot, Matrix3f *scale) noexcept {
+    mat->computeRotationScaling(rot, scale);
+}
+
+inline void matrixLinear(Matrix *mat, Vec3f *rot, Matrix3f *scale) noexcept {
+    Matrix3f m;
+    matrixLinear(mat, &m, scale);
+    *rot = m.eulerAngles(0, 1, 2);
+}
 
 inline AngleAxisf angleAxis(float value, Axis axis) noexcept {
     static AngleAxisf zerox(0, Vec3f::UnitX());

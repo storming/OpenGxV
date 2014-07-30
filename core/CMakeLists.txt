@@ -19,6 +19,10 @@ add_library(opengv STATIC
     gv_stage.cpp
     gv_texture.cpp
     gv_unistr.cpp
+    gv_interactiveobject.cpp
+    gv_renderer.cpp
+    gv_shape.cpp
+    gv_xml.cpp
     opengxv.cpp
 )
 	

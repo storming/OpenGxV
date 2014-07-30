@@ -1,13 +1,14 @@
 #ifndef __GV_DISPLAY_OBJECT_CONTAINER_H__
 #define __GV_DISPLAY_OBJECT_CONTAINER_H__
 
-#include "gv_displayobject.h"
+#include "gv_interactiveobject.h"
 
 GV_NS_BEGIN
 
-class DisplayObjectContainer : public DisplayObject {
+class DisplayObjectContainer : public InteractiveObject {
     friend class Object;
     friend class DisplayObject;
+    friend class Stage;
 public:
     typedef gv_list(ptr<DisplayObject>, _entry) ContainerBase;
     class Container : private ContainerBase {
@@ -30,10 +31,6 @@ public:
         using ContainerBase::cend;
         using ContainerBase::crbegin;
         using ContainerBase::crend;
-
-        unsigned size() const noexcept {
-            return _size;
-        }
         Container& operator=(const Container&) = delete;
     protected:
         Container() noexcept : _size() {}
@@ -59,6 +56,10 @@ public:
     virtual void swapChildren(const ptr<DisplayObject> &a, const ptr<DisplayObject> &b);
     virtual void swapChildren(unsigned a, unsigned b);
 
+    unsigned numChildren() const noexcept {
+        return _container._size;
+    }
+
     virtual void bringChildToFront(const ptr<DisplayObject> &child);
     virtual void sendChildToBack(const ptr<DisplayObject> &child);
 
@@ -69,6 +70,8 @@ protected:
 
 private:
     ptr<DisplayObject> removeChild(const ptr<DisplayObject> &child, bool update);
+    virtual void stage(Stage *stage) override;
+    void render(Renderer &renderer, const Matrix &mat, int dirty) noexcept;
 
 private:
     Box2f _childrenBounds;

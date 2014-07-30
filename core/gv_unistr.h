@@ -22,20 +22,21 @@ private:
     hashmap_entry _entry;
 public:
     const char *c_str() const noexcept {
-        return (const char*)_chunk.data();
+        return (const char*)_data;
     }
     size_t size() const {
-        return _chunk.size();
+        return _size;
     }
     size_t hash() const {
         return _entry._hash;
     }
     operator const char*() const noexcept {
-        return (const char*)_chunk.data();
+        return (const char*)_data;
     }
 private:
-    Chunk _chunk;
-};
+    char  *_data;
+    size_t _size;
+}; 
 
 class UniStrPool : public Object, public singleton<UniStrPool> {
     friend class UniStr;
@@ -73,25 +74,25 @@ inline ptr<UniStr> unistr(const std::string &str) noexcept {
 
 GV_NS_END
 
-#define GV_STATIC_UNISTR2(name, str)                         \
-static class __GV_STATIC_UNISTR_##name {                     \
-    struct impl : GV_NS::Object, GV_NS::singleton<impl> {    \
-        bool init() {                                        \
-            _str = GV_NS::UniStrPool::instance()->get(#str); \
-            return true;                                     \
-        }                                                    \
-        GV_NS::ptr<GV_NS::UniStr> _str;                      \
-    };                                                       \
-public:                                                      \
-    operator GV_NS::ptr<GV_NS::UniStr>() const noexcept {    \
-        return impl::instance()->_str;                       \
-    }                                                        \
+#define GV_STATIC_UNISTR2(name, str)                                  \
+static class __GV_STATIC_UNISTR_##name {                              \
+    struct impl : GV_NS::Object, GV_NS::singleton<impl, UniStrPool> { \
+        bool init() {                                                 \
+            _str = GV_NS::UniStrPool::instance()->get(#str);          \
+            return true;                                              \
+        }                                                             \
+        GV_NS::ptr<GV_NS::UniStr> _str;                               \
+    };                                                                \
+public:                                                               \
+    operator const GV_NS::ptr<GV_NS::UniStr>&() const noexcept {      \
+        return impl::instance()->_str;                                \
+    }                                                                 \
 } name
 
-#define GV_STATIC_UNISTR(name)                               \
+#define GV_STATIC_UNISTR(name)                                        \
 GV_STATIC_UNISTR2(name, #name)
 
-#define GV_IMPL_UNISTR(CLASS, name)                          \
+#define GV_IMPL_UNISTR(CLASS, name)                                   \
 decltype(CLASS::name) CLASS::name
 
 #endif

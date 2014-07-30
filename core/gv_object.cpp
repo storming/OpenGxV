@@ -17,10 +17,12 @@ Object::singletons::~singletons() {
 }
 
 void Object::constructFailed() {
+    _constructRef = 0;
     gv_fail("can't 'new' class Object, must use object template to construct it.");
 }
 
 void Object::destroyFailed() {
+    _destroyRef = 0;
     gv_fail("can't 'delete' class Object.");
 }
 

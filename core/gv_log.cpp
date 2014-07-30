@@ -15,16 +15,16 @@ void Log::begin(LogLevel level) noexcept {
 
 void Log::end() noexcept {
     if (_pos > 0) {
-        _chunk[_pos++] = '\n';
-        _chunk[_pos++] = '\0';
-        fputs((char*)_chunk.data(), stderr);
+        (*_chunk)[_pos++] = '\n';
+        (*_chunk)[_pos++] = '\0';
+        fputs((char*)_chunk->data(), stderr);
         fflush(stderr);
     }
 }
 
 void Log::vprint(const char *fmt, va_list ap) noexcept {
-    if (_pos < _chunk.size() - 1) {
-        _pos += std::vsnprintf((char*)_chunk.data() + _pos, _chunk.size() - _pos - 1, fmt, ap);
+    if (_pos < _chunk->size() - 1) {
+        _pos += std::vsnprintf((char*)_chunk->data() + _pos, _chunk->size() - _pos - 1, fmt, ap);
     }
 }
 

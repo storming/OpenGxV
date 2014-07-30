@@ -1,7 +1,7 @@
 #ifndef __GV_LAYOUT_H__
 #define __GV_LAYOUT_H__
 
-#include "gv_plantform.h"
+#include "gv_platform.h"
 
 GV_NS_BEGIN
 
