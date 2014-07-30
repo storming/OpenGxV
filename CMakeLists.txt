@@ -11,6 +11,7 @@ set(OPENGV_LIBDEPS
   glfw3
   png
   opengl32
+  expat
 )
 
 if(MINGW)
@@ -30,6 +31,7 @@ elseif(WIN32)
         glfw3
         libpng16
         opengl32
+        libexpat
     )
 endif()
 
